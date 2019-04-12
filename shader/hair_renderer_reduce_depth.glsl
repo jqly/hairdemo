@@ -19,9 +19,16 @@ void main()
 
 #include "version"
 
+layout(binding=0,r32ui) uniform uimage2D g_DepthFirst3;
+
 void main()
 {
-    gl_FragDepth = gl_FragCoord.z+.00001;
+    uint zcandidate = floatBitsToUint(gl_FragCoord.z);
+    ivec2 fcoord = ivec2(gl_FragCoord.xy);
+    uint zcandidate_ = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+0,fcoord.y),zcandidate);
+    zcandidate_ = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+1,fcoord.y),zcandidate_);
+    zcandidate_ = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+2,fcoord.y),zcandidate_);
+    gl_FragDepth = uintBitsToFloat(max(zcandidate_,zcandidate)+1);
 }
 
 #endstage

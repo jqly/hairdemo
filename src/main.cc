@@ -50,7 +50,7 @@ int main()
 	//	xy::DegreeToRadian(60.f),
 	//	static_cast<float>(W) / H, .1f, 100.f);
 
-	SimpleHairRenderer hair_renderer{};
+	SimpleHairRenderer hair_renderer{W,H};
 	hair_renderer.InitGpuResource(&hair_asset);
 	XYInput input{ wptr };
 	auto composition = MakeRenderLayer(W, H, 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
