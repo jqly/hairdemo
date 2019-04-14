@@ -4,7 +4,6 @@
 #include "xy_opengl.h"
 #include "render.h"
 #include "hair_renderer.h"
-//#include "hair_renderer.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -50,10 +49,14 @@ int main()
 	//	xy::DegreeToRadian(60.f),
 	//	static_cast<float>(W) / H, .1f, 100.f);
 
-	SimpleHairRenderer hair_renderer{W,H};
+	PPLLPHairRenderer hair_renderer{W,H,8};
 	hair_renderer.InitGpuResource(&hair_asset);
 	XYInput input{ wptr };
-	auto composition = MakeRenderLayer(W, H, 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
+	auto composition = RenderTargetFactory()
+		.Size(W, H)
+		.ColorAsTexture(GL_LINEAR, GL_NEAREST, 1, GL_RGBA8)
+		.DepthAsRenderbuffer(GL_DEPTH_COMPONENT24)
+		.Create();
 
 	XYREParams xyre_params;
 	xyre_params.msm_depth_offset = 0.f;

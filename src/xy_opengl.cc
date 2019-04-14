@@ -15,88 +15,106 @@
 #include "./tiny_obj_loader.h"
 
 
-RenderLayer MakeRenderLayer(int width, int height, int msaa_level, GLenum color_format, GLenum depth_format)
+RenderTargetFactory& RenderTargetFactory::Size(int width, int height)
 {
-	if (msaa_level <= 1) msaa_level = 0;
+	width_ = width;
+	height_ = height;
+	return *this;
+}
 
-	RenderLayer layer{};
+RenderTargetFactory& RenderTargetFactory::ColorAsTexture(GLint mag_filter, GLint min_filter, GLsizei mipmap_levels, GLenum color_format)
+{
+	mag_filter_ = mag_filter;
+	min_filter_ = min_filter;
+	mipmap_levels_ = mipmap_levels;
+	color_format_ = color_format;
+	color_as_texture_ = true;
+	return *this;
+}
 
-	layer.width = width;
-	layer.height = height;
-	layer.msaa_level = msaa_level;
+RenderTargetFactory& RenderTargetFactory::DepthAsRenderbuffer(GLenum depth_format)
+{
+	depth_format_ = depth_format;
+	depth_attachment_ = true;
+	return *this;
+}
 
-	// Set color buffer.
-	if (msaa_level > 1) {
-		glGenRenderbuffers(1, &layer.color);
-		glBindRenderbuffer(GL_RENDERBUFFER, layer.color);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa_level, color_format, width, height);
+RenderTargetFactory& RenderTargetFactory::ColorDepthAsRenderbuffer(GLenum color_format, GLenum depth_format)
+{
+	return ColorDepthAsRenderbufferMSAA(color_format, depth_format, 1);
+}
+
+RenderTargetFactory& RenderTargetFactory::ColorDepthAsRenderbufferMSAA(GLenum color_format, GLenum depth_format, int msaa)
+{
+	color_format_ = color_format;
+	depth_format_ = depth_format;
+	depth_attachment_ = true;
+	msaa_ = std::max(1, msaa);
+	depth_attachment_ = true;
+	return *this;
+}
+
+RenderTarget RenderTargetFactory::Create()
+{
+	RenderTarget target{};
+
+	target.width = width_;
+	target.height = height_;
+	target.msaa = msaa_;
+	target.color_as_texture = color_as_texture_;
+	target.depth_attachment = depth_attachment_;
+	target.mipmap_levels = mipmap_levels_;
+
+	glGenFramebuffers(1, &target.fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
+
+	if (color_as_texture_) {
+		glGenTextures(1, &target.color);
+		glBindTexture(GL_TEXTURE_2D, target.color);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter_);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter_);
+		glTexStorage2D(GL_TEXTURE_2D, mipmap_levels_, color_format_, width_, height_);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target.color, 0);
 	}
 	else {
-		glGenTextures(1, &layer.color);
-		glBindTexture(GL_TEXTURE_2D, layer.color);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexStorage2D(GL_TEXTURE_2D, 1, color_format, width, height);
+		glGenRenderbuffers(1, &target.color);
+		glBindRenderbuffer(GL_RENDERBUFFER, target.color);
+		if (msaa_ > 1)
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa_, color_format_, width_, height_);
+		else
+			glRenderbufferStorage(GL_RENDERBUFFER, color_format_, width_, height_);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, target.color);
 	}
 
-	// Set depth buffer.
-	glGenRenderbuffers(1, &layer.depth);
-	glBindRenderbuffer(GL_RENDERBUFFER, layer.depth);
-	if (msaa_level > 1)
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa_level, depth_format, width, height);
-	else
-		glRenderbufferStorage(GL_RENDERBUFFER, depth_format, width, height);
-
-	// Bind fbo.
-	glGenFramebuffers(1, &layer.fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, layer.fbo);
-	if (msaa_level > 1)
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, layer.color);
-	else
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, layer.color, 0);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, layer.depth);
+	if (depth_attachment_) {
+		glGenRenderbuffers(1, &target.depth);
+		glBindRenderbuffer(GL_RENDERBUFFER, target.depth);
+		if (msaa_ > 1)
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa_, depth_format_, width_, height_);
+		else
+			glRenderbufferStorage(GL_RENDERBUFFER, depth_format_, width_, height_);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, target.depth);
+	}
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 		XY_Die("Framebuffer not complete");
 
-	return layer;
+	return target;
 }
 
-RenderLayer MakeRenderLayer(int width, int height, GLenum color_format)
+
+void DelRenderTarget(RenderTarget &target)
 {
-	RenderLayer layer{};
-	layer.width = width;
-	layer.height = height;
-
-	glGenTextures(1, &layer.color);
-	glBindTexture(GL_TEXTURE_2D, layer.color);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexStorage2D(GL_TEXTURE_2D, 1, color_format, width, height);
-
-	glGenFramebuffers(1, &layer.fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, layer.fbo);
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, layer.color, 0);
-
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-		XY_Die("Framebuffer not complete");
-
-	return layer;
-}
-
-void DelRenderLayer(RenderLayer & layer)
-{
-	glDeleteFramebuffers(1, &layer.fbo);
-	glDeleteRenderbuffers(1, &layer.depth);
-	if (layer.msaa_level > 1)
-		glDeleteRenderbuffers(1, &layer.color);
+	glDeleteFramebuffers(1, &target.fbo);
+	if (target.depth_attachment)
+		glDeleteRenderbuffers(1, &target.depth);
+	if (target.color_as_texture)
+		glDeleteTextures(1, &target.color);
 	else
-		glDeleteTextures(1, &layer.color);
+		glDeleteRenderbuffers(1, &target.color);
 	// POD is memset-able.
-	memset(&layer, 0, sizeof(layer));
+	memset(&target, 0, sizeof(target));
 }
 
 void PrettyPrintShaderLog(const std::string &log, const std::string &shader)

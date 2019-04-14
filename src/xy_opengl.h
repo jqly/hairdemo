@@ -57,21 +57,37 @@ inline void ShaderAssign(GLint location, const GLfloat value) {
 }
 
 ////
-// Renderlayer code.
+// Render target code.
 ////
 
-struct RenderLayer {
-	int width;
-	int height;
-	int msaa_level;
-	GLuint fbo;
-	GLuint color;
-	GLuint depth;
+struct RenderTarget {
+	int width, height, msaa;
+	GLuint fbo, color, depth;
+	bool color_as_texture, depth_attachment;
+	int mipmap_levels;
 };
 
-RenderLayer MakeRenderLayer(int width, int height, int msaa_level, GLenum color_format, GLenum depth_format);
-RenderLayer MakeRenderLayer(int width, int height, GLenum color_format);
-void DelRenderLayer(RenderLayer &layer);
+class RenderTargetFactory {
+
+public:
+
+	RenderTargetFactory& Size(int width, int height);
+	RenderTargetFactory& ColorAsTexture(GLint mag_filter, GLint min_filter, GLsizei mipmap_levels, GLenum color_format);
+	RenderTargetFactory& DepthAsRenderbuffer(GLenum depth_format);
+	RenderTargetFactory& ColorDepthAsRenderbuffer(GLenum color_format, GLenum depth_format);
+	RenderTargetFactory& ColorDepthAsRenderbufferMSAA(GLenum color_format, GLenum depth_format, int msaa);
+	RenderTarget Create();
+
+private:
+
+	int width_ = 0, height_ = 0, msaa_ = 0;
+	GLint mag_filter_ = 0, min_filter_ = 0, mipmap_levels_ = 0;
+	GLenum color_format_ = 0, depth_format_ = 0;
+	bool color_as_texture_ = false, depth_attachment_ = false;
+
+};
+
+void DelRenderTarget(RenderTarget & target);
 
 
 ////
