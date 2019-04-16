@@ -30,9 +30,7 @@ void main()
     uint node_idx = imageLoad(g_PPLLHeads,ivec2(gl_FragCoord.xy)).r;
     if (node_idx == 0)
         return;
-    else
-        out_HairColor = vec4(1,0,0,1);
-    return;
+
     HairNode kbuf[KBufSize];
 
     int kbuf_ed = 0;
@@ -58,17 +56,20 @@ void main()
         }
     }
 
-    float rem = 1.f;
+    float rem = 1.f, total_alpha = 0.;
     vec3 color = vec3(0,0,0);
     for (int i = 0; i < kbuf_ed; ++i) {
         vec4 c = UnpackUintIntoVec4(kbuf[i].color);
         color += c.rgb*rem*c.a;
+        total_alpha += rem*c.a;
         rem *= (1.-c.a);
     }
     
     uint alpha = imageLoad(g_HairAlpha,ivec2(gl_FragCoord.xy)).r;
     float alphaness = float(alpha)/255.;
-    out_HairColor = vec4(kbuf_ed/10.,0,0,1);
+    out_HairColor = vec4(color/total_alpha,alphaness);
+    // out_HairColor = vec4(kbuf_ed/8.,0,0,1);
+
 }
 
 #endstage

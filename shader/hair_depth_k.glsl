@@ -134,7 +134,7 @@ in vec4 fs_WinE0E1;
 uniform vec2 g_WinSize;
 uniform float g_HairTransparency;
 
-layout(binding=0,r32ui) uniform uimage2D g_DepthFirst3;
+layout(binding=0,r32ui) uniform uimage2D g_DepthCache;
 layout(binding=1,r32ui) uniform uimage2D g_HairAlpha;
 
 void main()
@@ -142,33 +142,28 @@ void main()
     float coverage = ComputePixelCoverage(fs_WinE0E1.xy,fs_WinE0E1.zw,gl_FragCoord.xy,g_WinSize);
     coverage *= fract(fs_Tangent.w);
     float hair_alpha = coverage*(1.-g_HairTransparency);
-    
+
     ivec2 fcoord = ivec2(gl_FragCoord.xy);
-    
+
     imageAtomicAdd(g_HairAlpha, fcoord, uint(hair_alpha*255));
 
+    // gl_FragDepth = 1.;
+    // return;
+
     uint zcandidate = floatBitsToUint(gl_FragCoord.z);
-    uint zold = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+0,fcoord.y),zcandidate);
+    uint zold = imageAtomicMin(g_DepthCache, ivec2(fcoord.x*2+0,fcoord.y),zcandidate);
     uint z1 = min(zcandidate,zold);
     zcandidate = max(zcandidate,zold);
-    gl_FragDepth = uintBitsToFloat(z1+1);
-    // zold = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+1,fcoord.y),zcandidate);
-    // uint z2 = min(zcandidate,zold);
-    // zcandidate = max(zcandidate,zold);
 
-    // zold = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+2,fcoord.y),zcandidate);
-    // uint z3 = min(zcandidate,zold);
-    // zcandidate = max(zcandidate,zold);
+    zold = imageAtomicMin(g_DepthCache, ivec2(fcoord.x*2+1,fcoord.y),zcandidate);
+    uint z2 = min(zcandidate,zold);
+    zcandidate = max(zcandidate,zold);
 
-    // // TODO: depth correction.
-    // if (zcandidate == floatBitsToUint(1.))
-    //     gl_FragDepth = 0.;
-    // else {
-    //     float spacing = max(
-    //         abs(uintBitsToFloat(z2)-uintBitsToFloat(z1)),
-    //         abs(uintBitsToFloat(z3)-uintBitsToFloat(z2)));
-    //     gl_FragDepth = uintBitsToFloat(zcandidate)+uintBitsToFloat(floatBitsToUint(spacing*8.)+1);
-    // }
+    if (z2 == floatBitsToUint(1.))
+        gl_FragDepth = 1.;
+    else
+        gl_FragDepth = uintBitsToFloat(z1)+8.*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
+    
 }
 
 #endstage

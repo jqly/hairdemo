@@ -47,7 +47,7 @@ private:
 
 	int render_layer_width_, render_layer_height_, k_;
 	GLuint s_hair_ppll_store_, s_hair_ppll_resolve_, s_depth_k_;
-	RenderTarget rt_reduced_depth_, rt_hair_alpha_, rt_depth_k_, rt_hair_;
+	RenderTarget rt_reduced_depth_, rt_hair_alpha_, rt_depth_k_;
 
 	int ppll_max_hair_nodes_;
 	GLuint ppll_cnt_, ppll_hair_nodes_;
