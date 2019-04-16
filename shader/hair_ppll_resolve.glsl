@@ -17,8 +17,7 @@ void main() {
 
 out vec4 out_HairColor;
 
-layout(binding=0,r8) uniform image2D g_Transparency;
-
+layout(binding=0,r32ui) uniform uimage2D g_HairAlpha;
 layout(binding=1,r32ui) uniform uimage2D g_PPLLHeads;
 layout(binding=0,std430) buffer PPLLLayout { 
     HairNode g_HairNodes[]; 
@@ -30,7 +29,7 @@ void main()
 {
     uint node_idx = imageLoad(g_PPLLHeads,ivec2(gl_FragCoord.xy)).r;
     if (node_idx == 0)
-        discard;
+        return;
 
     HairNode kbuf[KBufSize];
 
@@ -62,8 +61,9 @@ void main()
         rem *= (1.-c.a);
     }
     
-    float alpha = 1. - imageLoad(g_Transparency,ivec2(gl_FragCoord.xy)).r;
-    out_HairColor = vec4(color,alpha);
+    uint alpha = imageLoad(g_HairAlpha,ivec2(gl_FragCoord.xy)).r;
+    float alphaness = float(alpha)/255.;
+    out_HairColor = vec4(color,alphaness);
 }
 
 #endstage

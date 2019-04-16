@@ -29,6 +29,7 @@ RenderTargetFactory& RenderTargetFactory::ColorAsTexture(GLint mag_filter, GLint
 	mipmap_levels_ = mipmap_levels;
 	color_format_ = color_format;
 	color_as_texture_ = true;
+	color_attachment_ = true;
 	return *this;
 }
 
@@ -51,6 +52,7 @@ RenderTargetFactory& RenderTargetFactory::ColorDepthAsRenderbufferMSAA(GLenum co
 	depth_attachment_ = true;
 	msaa_ = std::max(1, msaa);
 	depth_attachment_ = true;
+	color_attachment_ = true;
 	return *this;
 }
 
@@ -68,22 +70,27 @@ RenderTarget RenderTargetFactory::Create()
 	glGenFramebuffers(1, &target.fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
 
-	if (color_as_texture_) {
-		glGenTextures(1, &target.color);
-		glBindTexture(GL_TEXTURE_2D, target.color);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter_);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter_);
-		glTexStorage2D(GL_TEXTURE_2D, mipmap_levels_, color_format_, width_, height_);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target.color, 0);
+	if (color_attachment_) {
+		if (color_as_texture_) {
+			glGenTextures(1, &target.color);
+			glBindTexture(GL_TEXTURE_2D, target.color);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter_);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter_);
+			glTexStorage2D(GL_TEXTURE_2D, mipmap_levels_, color_format_, width_, height_);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target.color, 0);
+		}
+		else {
+			glGenRenderbuffers(1, &target.color);
+			glBindRenderbuffer(GL_RENDERBUFFER, target.color);
+			if (msaa_ > 1)
+				glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa_, color_format_, width_, height_);
+			else
+				glRenderbufferStorage(GL_RENDERBUFFER, color_format_, width_, height_);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, target.color);
+		}
 	}
 	else {
-		glGenRenderbuffers(1, &target.color);
-		glBindRenderbuffer(GL_RENDERBUFFER, target.color);
-		if (msaa_ > 1)
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa_, color_format_, width_, height_);
-		else
-			glRenderbufferStorage(GL_RENDERBUFFER, color_format_, width_, height_);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, target.color);
+		;
 	}
 
 	if (depth_attachment_) {

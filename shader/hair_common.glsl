@@ -1,5 +1,7 @@
 struct HairNode {
-    uint depth,color,next;
+    uint depth;
+    uint color;
+    uint next;
 };
 
 float ComputePixelCoverage(vec2 p0, vec2 p1, vec2 pixel_loc, vec2 win_size)

@@ -83,7 +83,7 @@ private:
 	int width_ = 0, height_ = 0, msaa_ = 0;
 	GLint mag_filter_ = 0, min_filter_ = 0, mipmap_levels_ = 0;
 	GLenum color_format_ = 0, depth_format_ = 0;
-	bool color_as_texture_ = false, depth_attachment_ = false;
+	bool color_as_texture_ = false, depth_attachment_ = false, color_attachment_ = false;
 
 };
 

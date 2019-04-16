@@ -76,8 +76,6 @@ int main()
 		glClearColor(1, 1, 1, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glEnable(GL_DEPTH_TEST);
-
 		hair_renderer.ReduceDepth(composition, camera);
 		hair_renderer.RenderMainPass(composition, camera);
 
