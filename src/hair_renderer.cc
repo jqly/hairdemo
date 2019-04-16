@@ -138,28 +138,35 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	glDepthMask(GL_TRUE);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 	gasset.DrawElements({ 0,1 });
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDepthFunc(GL_LESS);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	////
 	// PPLL store fragments into linked list.
 	////
 
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, rt_reduced_depth_.fbo);
+	// Not working for integer texture.
+	//glBindFramebuffer(GL_FRAMEBUFFER, ppll_heads_.fbo);
+	//glClearColor(1,1,1,1);
+	//glClear(GL_COLOR_BUFFER_BIT);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//glBindFramebuffer(GL_FRAMEBUFFER, ppll_heads_.fbo);
+	//GLuint ppll_head_zero_state[4] = { 0,0,0,0 };
+	//glClearBufferuiv(GL_COLOR, 0, ppll_head_zero_state);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//glClearTexImage(ppll_heads_.color, 0, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ppll_heads_.fbo);
-	glBlitFramebuffer(
-		0, 0, rt_reduced_depth_.width, rt_reduced_depth_.height,
-		0, 0, ppll_heads_.width, ppll_heads_.height,
-		GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, ppll_heads_.color, 0); //Only need to do this once.
+	glDrawBuffer(GL_COLOR_ATTACHMENT0); //Only need to do this once.
+	GLuint clearColor[4] = { 0, 0, 0, 0 };
+	glClearBufferuiv(GL_COLOR, 0, clearColor);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, ppll_heads_.fbo);
-	glClearColor(0, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, rt_hair_alpha_.fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, rt_reduced_depth_.fbo);
 	glUseProgram(s_hair_ppll_store_);
-	glViewport(0, 0, rt_hair_alpha_.width, rt_hair_alpha_.height);
+	glViewport(0, 0, rt_reduced_depth_.width, rt_reduced_depth_.height);
 
 	GLuint ppll_cnt_zero_state = 0;
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, ppll_cnt_);
@@ -178,6 +185,7 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_HairTransparency"), .2f);
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_MaxHairNodes"), ppll_max_hair_nodes_);
 
+	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(GL_FALSE);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);

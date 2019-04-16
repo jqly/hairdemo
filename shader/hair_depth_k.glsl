@@ -151,7 +151,7 @@ void main()
     uint zold = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+0,fcoord.y),zcandidate);
     uint z1 = min(zcandidate,zold);
     zcandidate = max(zcandidate,zold);
-    gl_FragDepth = uintBitsToFloat(z1);
+    gl_FragDepth = uintBitsToFloat(z1+1);
     // zold = imageAtomicMin(g_DepthFirst3, ivec2(fcoord.x*3+1,fcoord.y),zcandidate);
     // uint z2 = min(zcandidate,zold);
     // zcandidate = max(zcandidate,zold);

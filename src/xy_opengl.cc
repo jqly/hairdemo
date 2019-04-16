@@ -89,9 +89,6 @@ RenderTarget RenderTargetFactory::Create()
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, target.color);
 		}
 	}
-	else {
-		;
-	}
 
 	if (depth_attachment_) {
 		glGenRenderbuffers(1, &target.depth);
