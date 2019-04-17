@@ -482,7 +482,14 @@ HairAsset MakeHairAsset(std::string path)
 
 	for (unsigned kthfib = 1; kthfib <= num_fibers; ++kthfib) {
 		auto vert_count = read_unsigned();
-
+		if (vert_count < 3) {
+			while (vert_count--) {
+				read_float();
+				read_float();
+				read_float();
+			}
+			continue;
+		}
 		asset.vcounts.push_back(vert_count);
 
 		for (unsigned kthp = 0; kthp < vert_count; ++kthp) {
@@ -523,7 +530,7 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 	}
 
 	glGenVertexArrays(1, &gasset.vao);
-	glGenBuffers(3, gasset.bufs);
+	glGenBuffers(2, gasset.bufs);
 
 	glBindVertexArray(gasset.vao);
 
@@ -535,25 +542,41 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec4)*tangents.size(), tangents.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(xy::vec4), (void*)(0));
 
-	std::vector<unsigned> vcounts;
+	std::vector<GLuint> idx_set0, idx_set1;
 	{
-		unsigned kth_vert = 0;
-		for (auto vcount : asset.vcounts) {
-			for (int i = 0; i < vcount; ++i)
-				vcounts.push_back(kth_vert++);
-			vcounts.push_back(0xffff);
+		xy::RandomEngine prng{ 0xc01dbeefdeadbead };
+		int kth_vert = 0;
+		for (int kth_hair = 0; kth_hair < asset.vcounts.size(); ++kth_hair) {
+			int vcount = asset.vcounts[kth_hair];
+			auto fdice = xy::Unif(prng);
+			if (fdice < .75)
+				;
+			else if (fdice < .90) {
+				for (int vi = 0; vi < vcount; ++vi)
+					idx_set0.push_back(kth_vert++);
+				idx_set0.push_back(0xFFFFFFFF);
+			}
+			else {
+				for (int vi = 0; vi < vcount; ++vi)
+					idx_set1.push_back(kth_vert++);
+				idx_set1.push_back(0xFFFFFFFF);
+			}
 		}
-		gasset.num_indices = vcounts.size();
 	}
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gasset.bufs[2]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * vcounts.size(), vcounts.data(), GL_STATIC_DRAW);
+	gasset.num_indices[0] = idx_set0.size();
+	gasset.num_indices[1] = idx_set1.size();
+
+	glGenBuffers(2, gasset.index_bufs);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gasset.index_bufs[0]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * idx_set0.size(), idx_set0.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gasset.index_bufs[1]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * idx_set1.size(), idx_set1.data(), GL_STATIC_DRAW);
 
 	glBindVertexArray(0);
 
 	gasset.model = xy::mat4{ 1.f };
-	gasset.radius = 1.f;
-	gasset.alpha = .8f;
 	gasset.bounds = AABB(asset.positions);
 
 	return gasset;
@@ -938,22 +961,22 @@ void ObjGAsset_Part::DrawElements(GLenum mode, const std::vector<int>&& attribs)
 	glBindVertexArray(0);
 }
 
-void HairGAsset::DrawElements(const std::vector<int>&& attribs) const
+void HairGAsset::DrawIndexed(int index, const std::vector<int>&& attribs) const
 {
 	glBindVertexArray(vao);
 	for (auto attrib : attribs)
 		glEnableVertexAttribArray(attrib);
 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_bufs[index]);
+
 	glEnable(GL_PRIMITIVE_RESTART);
-	glPrimitiveRestartIndex(0xFFFF);
-	glDrawElements(GL_LINE_STRIP, num_indices, GL_UNSIGNED_INT, (GLvoid*)0);
+	glPrimitiveRestartIndex(0xFFFFFFFF);
+	glDrawElements(GL_LINE_STRIP, num_indices[index], GL_UNSIGNED_INT, (GLvoid*)0);
 
 	for (auto attrib : attribs)
 		glDisableVertexAttribArray(attrib);
 	glBindVertexArray(0);
 }
-
-
 
 ArcballCamera::ArcballCamera(AABB bounds, xy::vec3 forward, xy::vec3 up, float FoVy, float aspect)
 	:zoom_part_{ 100.f }, cat_{ 10 }
@@ -1224,3 +1247,4 @@ xy::vec3 LightCamera::Pos() const
 {
 	return pos_;
 }
+

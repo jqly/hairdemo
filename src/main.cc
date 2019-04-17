@@ -21,8 +21,8 @@ int main()
 	//hair_renderer.GpuInit();
 
 	const int W = 512, H = 512;
-	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", true, true);
-	const std::string asset_dir = "C:\\Users\\jqly\\Documents\\jqlyg\\hairdemo\\asset\\";
+	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", true, false);
+	const std::string asset_dir = "D:\\jqlyg\\hairdemo\\asset\\";
 
 	auto hair_asset = MakeHairAsset(asset_dir + "lionking/lionking.ind");
 	xy::Print("#hairs:{},#verts:{}\n", hair_asset.vcounts.size(), hair_asset.positions.size());
@@ -76,7 +76,7 @@ int main()
 		glClearColor(1, 1, 1, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		hair_renderer.ReduceDepth(composition, camera);
+		hair_renderer.RenderPrePass(composition, camera);
 		hair_renderer.RenderMainPass(composition, camera);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -132,8 +132,8 @@ void ImguiOverlay(
 	ImGui::SliderFloat("MSM depth offset", &params.msm_depth_offset, 0.f, 1.f);
 	ImGui::SliderFloat3("Sun light dir", params.sun_light_dir.data, -1.f, 1.f);
 
-	ImGui::SliderFloat("Hair radius", &hair_gasset.radius, 0.f, 10.f);
-	ImGui::SliderFloat("Hair transp", &hair_gasset.alpha, 0.f, 1.f);
+	//ImGui::SliderFloat("Hair radius", &hair_gasset.radius, 0.f, 10.f);
+	//ImGui::SliderFloat("Hair transp", &hair_gasset.alpha, 0.f, 1.f);
 
 	ImGui::End();
 	ImGui::Render();

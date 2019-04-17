@@ -19,7 +19,7 @@ public:
 
 	virtual void RenderMainPass(RenderTarget &target, const Camera &camera) = 0;
 	virtual void RenderShadowMap(const Camera &camera) {}
-	virtual void ReduceDepth(RenderTarget &target, const Camera &camera) {}
+	virtual void RenderPrePass(RenderTarget &target, const Camera &camera) {}
 
 	virtual ~HairRenderer() {}
 
@@ -46,7 +46,7 @@ public:
 private:
 
 	int render_layer_width_, render_layer_height_, k_;
-	GLuint s_hair_ppll_store_, s_hair_ppll_resolve_, s_depth_k_;
+	GLuint s_hair_ppll_store_, s_hair_ppll_resolve_, s_depth_k_, s_hair_detail_;
 	RenderTarget rt_reduced_depth_, rt_hair_alpha_, rt_depth_k_;
 
 	int ppll_max_hair_nodes_;
@@ -70,7 +70,7 @@ public:
 	void InitGpuResource(const HairAsset *asset) override;
 	void DelGpuResource() override;
 	void RenderMainPass(RenderTarget &target, const Camera &camera) override;
-	void ReduceDepth(RenderTarget &target, const Camera &camera) override;
+	void RenderPrePass(RenderTarget &target, const Camera &camera) override;
 
 private:
 

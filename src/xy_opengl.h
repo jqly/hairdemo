@@ -119,6 +119,8 @@ struct HairAsset {
 	std::string path;
 	std::vector<int> vcounts;
 	std::vector<xy::vec3> positions;
+	int scale;
+	float transparency;
 };
 
 HairAsset MakeHairAsset(std::string path);
@@ -126,14 +128,13 @@ HairAsset MakeHairAsset(std::string path);
 struct HairGAsset {
 	const HairAsset *asset;
 	GLuint vao;
-	GLuint bufs[3];
-	int num_indices;
+	GLuint bufs[2];
+	GLuint index_bufs[2];
+	int num_indices[2];
 
-	void DrawElements(const std::vector<int> &&attribs) const;
+	void DrawIndexed(int K, const std::vector<int> &&attribs) const;
 
 	xy::mat4 model;
-	float radius;
-	float alpha;
 	AABB bounds;
 };
 
