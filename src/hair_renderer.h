@@ -67,77 +67,10 @@ public:
 		:render_layer_width_{ render_layer_width },
 		render_layer_height_{ render_layer_height }{}
 
-	void InitGpuResource(const HairAsset *asset) override
-	{
-		SetModel(asset);
-
-		s_main_ = ResolveShader(
-			std::unordered_map<std::string, std::string>{
-				{"version", "#version 450 core"}
-		},
-			"D:\\jqlyg\\hairdemo\\shader\\hair_renderer.glsl",
-			"D:\\jqlyg\\hairdemo\\shader\\");
-
-		s_depth_reduce_ = ResolveShader(
-			std::unordered_map<std::string, std::string>{
-				{"version", "#version 450 core"}
-		},
-			"D:\\jqlyg\\hairdemo\\shader\\hair_renderer_reduce_depth.glsl",
-			"D:\\jqlyg\\hairdemo\\shader\\");
-
-		rt_reduced_depth_ = RenderTargetFactory()
-			.Size(render_layer_width_, render_layer_height_)
-			.ColorAsTexture(GL_NEAREST, GL_NEAREST, 1, GL_R32F)
-			.DepthAsRenderbuffer(GL_DEPTH_COMPONENT24)
-			.Create();
-
-		rt_hair_alpha_ = RenderTargetFactory()
-			.Size(render_layer_width_ * 3, render_layer_height_)
-			.ColorAsTexture(GL_NEAREST, GL_NEAREST, 1, GL_R32UI)
-			.Create();
-	}
-
-	void DelGpuResource() override
-	{
-		glDeleteProgram(s_main_);
-		DelRenderTarget(rt_reduced_depth_);
-		DelRenderTarget(rt_hair_alpha_);
-	}
-
-	void RenderMainPass(RenderTarget &target, const Camera &camera) override
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
-		glEnable(GL_DEPTH_TEST);
-		glViewport(0, 0, target.width, target.height);
-		glUseProgram(s_main_);
-		ShaderAssign(glGetUniformLocation(s_main_, "g_Model"), gasset.model);
-		ShaderAssign(glGetUniformLocation(s_main_, "g_ViewProj"), camera.Proj()*camera.View());
-		gasset.DrawElements({ 0,1 });
-	}
-
-	void ReduceDepth(RenderTarget &target, const Camera &camera) override
-	{
-
-		glBindFramebuffer(GL_FRAMEBUFFER, rt_hair_alpha_.fbo);
-		glViewport(0, 0, rt_hair_alpha_.width, rt_hair_alpha_.height);
-		glClearColor(1.f, 1.f, 1.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
-		glEnable(GL_DEPTH_TEST);
-		glViewport(0, 0, target.width, target.height);
-		glUseProgram(s_depth_reduce_);
-
-		glBindImageTexture(0, rt_hair_alpha_.color, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-
-		glColorMask(false, false, false, false);
-
-		ShaderAssign(glGetUniformLocation(s_depth_reduce_, "g_Model"), gasset.model);
-		ShaderAssign(glGetUniformLocation(s_depth_reduce_, "g_ViewProj"), camera.Proj()*camera.View());
-		gasset.DrawElements({ 0 });
-
-		glColorMask(true, true, true, true);
-	}
+	void InitGpuResource(const HairAsset *asset) override;
+	void DelGpuResource() override;
+	void RenderMainPass(RenderTarget &target, const Camera &camera) override;
+	void ReduceDepth(RenderTarget &target, const Camera &camera) override;
 
 private:
 

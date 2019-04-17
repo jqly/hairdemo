@@ -21,8 +21,8 @@ int main()
 	//hair_renderer.GpuInit();
 
 	const int W = 512, H = 512;
-	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", false, true);
-	const std::string asset_dir = "D:\\jqlyg\\hairdemo\\asset\\";
+	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", true, true);
+	const std::string asset_dir = "C:\\Users\\jqly\\Documents\\jqlyg\\hairdemo\\asset\\";
 
 	auto hair_asset = MakeHairAsset(asset_dir + "lionking/lionking.ind");
 	xy::Print("#hairs:{},#verts:{}\n", hair_asset.vcounts.size(), hair_asset.positions.size());

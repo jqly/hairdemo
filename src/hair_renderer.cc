@@ -1,5 +1,8 @@
 #include "hair_renderer.h"
 
+static const std::string shader_dir = "C:\\Users\\jqly\\Documents\\jqlyg\\hairdemo\\shader\\";
+
+
 PPLLPHairRenderer::PPLLPHairRenderer(int render_layer_width, int render_layer_height, int k)
 	:render_layer_width_{ render_layer_width },
 	render_layer_height_{ render_layer_height },
@@ -16,8 +19,8 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 		std::unordered_map<std::string, std::string>{
 			{"version", "#version 450 core"}
 	},
-		"D:\\jqlyg\\hairdemo\\shader\\hair_depth_k.glsl",
-		"D:\\jqlyg\\hairdemo\\shader\\");
+		shader_dir + "hair_depth_k.glsl",
+		shader_dir);
 
 	rt_depth_k_ = RenderTargetFactory()
 		.Size(render_layer_width_ * 2, render_layer_height_)
@@ -38,15 +41,15 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 		std::unordered_map<std::string, std::string>{
 			{"version", "#version 450 core"}
 	},
-		"D:\\jqlyg\\hairdemo\\shader\\hair_ppll_store.glsl",
-		"D:\\jqlyg\\hairdemo\\shader\\");
+		shader_dir + "hair_ppll_store.glsl",
+		shader_dir);
 
 	s_hair_ppll_resolve_ = ResolveShader(
 		std::unordered_map<std::string, std::string>{
 			{"version", "#version 450 core"}
 	},
-		"D:\\jqlyg\\hairdemo\\shader\\hair_ppll_resolve.glsl",
-		"D:\\jqlyg\\hairdemo\\shader\\");
+		shader_dir + "hair_ppll_resolve.glsl",
+		shader_dir);
 
 	glGenBuffers(1, &ppll_cnt_);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, ppll_cnt_);
@@ -196,4 +199,76 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
+}
+
+void SimpleHairRenderer::InitGpuResource(const HairAsset * asset)
+{
+	SetModel(asset);
+
+	s_main_ = ResolveShader(
+		std::unordered_map<std::string, std::string>{
+			{"version", "#version 450 core"}
+	},
+		shader_dir + "hair_renderer.glsl",
+		shader_dir);
+
+	s_depth_reduce_ = ResolveShader(
+		std::unordered_map<std::string, std::string>{
+			{"version", "#version 450 core"}
+	},
+		shader_dir + "hair_renderer_reduce_depth.glsl",
+		shader_dir);
+
+	rt_reduced_depth_ = RenderTargetFactory()
+		.Size(render_layer_width_, render_layer_height_)
+		.ColorAsTexture(GL_NEAREST, GL_NEAREST, 1, GL_R32F)
+		.DepthAsRenderbuffer(GL_DEPTH_COMPONENT24)
+		.Create();
+
+	rt_hair_alpha_ = RenderTargetFactory()
+		.Size(render_layer_width_ * 3, render_layer_height_)
+		.ColorAsTexture(GL_NEAREST, GL_NEAREST, 1, GL_R32UI)
+		.Create();
+}
+
+void SimpleHairRenderer::DelGpuResource()
+{
+	glDeleteProgram(s_main_);
+	DelRenderTarget(rt_reduced_depth_);
+	DelRenderTarget(rt_hair_alpha_);
+}
+
+void SimpleHairRenderer::RenderMainPass(RenderTarget & target, const Camera & camera)
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
+	glEnable(GL_DEPTH_TEST);
+	glViewport(0, 0, target.width, target.height);
+	glUseProgram(s_main_);
+	ShaderAssign(glGetUniformLocation(s_main_, "g_Model"), gasset.model);
+	ShaderAssign(glGetUniformLocation(s_main_, "g_ViewProj"), camera.Proj()*camera.View());
+	gasset.DrawElements({ 0,1 });
+}
+
+void SimpleHairRenderer::ReduceDepth(RenderTarget & target, const Camera & camera)
+{
+
+	glBindFramebuffer(GL_FRAMEBUFFER, rt_hair_alpha_.fbo);
+	glViewport(0, 0, rt_hair_alpha_.width, rt_hair_alpha_.height);
+	glClearColor(1.f, 1.f, 1.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
+	glEnable(GL_DEPTH_TEST);
+	glViewport(0, 0, target.width, target.height);
+	glUseProgram(s_depth_reduce_);
+
+	glBindImageTexture(0, rt_hair_alpha_.color, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+
+	glColorMask(false, false, false, false);
+
+	ShaderAssign(glGetUniformLocation(s_depth_reduce_, "g_Model"), gasset.model);
+	ShaderAssign(glGetUniformLocation(s_depth_reduce_, "g_ViewProj"), camera.Proj()*camera.View());
+	gasset.DrawElements({ 0 });
+
+	glColorMask(true, true, true, true);
 }

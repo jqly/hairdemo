@@ -28,9 +28,10 @@ layout(binding=0,std430) buffer PPLLLayout {
 void main()
 {
     uint node_idx = imageLoad(g_PPLLHeads,ivec2(gl_FragCoord.xy)).r;
-    if (node_idx == 0)
+    if (node_idx == 0) {
+        discard;
         return;
-
+    }
     HairNode kbuf[KBufSize];
 
     int kbuf_ed = 0;
