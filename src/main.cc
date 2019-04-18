@@ -1,6 +1,7 @@
 #include <string>
 #include <cctype>
 
+#include "app_settings.h"
 #include "xy_opengl.h"
 #include "render.h"
 #include "hair_renderer.h"
@@ -10,44 +11,42 @@
 #include "imgui/imgui_impl_opengl3.h"
 
 
+struct XYREParams{
+	xy::vec3 *point_light_position;
+};
+
 void ImguiInit(GLFWwindow *window);
-void ImguiOverlay(XYREParams &params, HairGAsset &hair_gasset);
+void ImguiOverlay(XYREParams &params);
 void ImguiExit();
 
 int main()
 {
-	//HairRenderer hair_renderer{};
-
-	//hair_renderer.GpuInit();
 
 	const int W = 512, H = 512;
 	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", true, false);
 	const std::string asset_dir = "D:\\jqlyg\\hairdemo\\asset\\";
 
 	auto hair_asset = MakeHairAsset(asset_dir + "lionking/lionking.ind");
-	xy::Print("#hairs:{},#verts:{}\n", hair_asset.vcounts.size(), hair_asset.positions.size());
-	auto hair_gasset = MakeHairGAsset(hair_asset);
+
+	hair_asset.radius[0] = 3.f;
+	hair_asset.radius[1] = 3.f;
+	hair_asset.radius[2] = 1.f;
+
+	hair_asset.transparency[0] = .5f;
+	hair_asset.transparency[1] = .2f;
+	hair_asset.transparency[2] = 0.f;
 
 	//auto obj_asset = MakeObjAsset(asset_dir + "lionking/lionking/lionsmooth.obj", asset_dir + "lionking/lionking/");
 	//auto obj_gasset = MakeObjGAsset(obj_asset);
 
-	AABB scene_bounds{};
-	for (const auto asset : { hair_gasset })
-		scene_bounds.Extend(asset.bounds);
+	AABB scene_bounds{hair_asset.positions};
 	//for (const auto asset : { obj_gasset })
 	//	scene_bounds.Extend(asset.bounds);
-
-
-	xy::Print("center:{},dims:{}\n", scene_bounds.Center(), scene_bounds.Lengths());
 
 	ArcballCamera camera(
 		scene_bounds, { 0,0,-1 }, { 0,1,0 },
 		xy::DegreeToRadian(60.f),
 		static_cast<float>(W) / H);
-
-	//WanderCamera camera(xy::vec3{ 100.f,0.f,0.f }, scene_bounds.Center(), { 0,1,0 },
-	//	xy::DegreeToRadian(60.f),
-	//	static_cast<float>(W) / H, .1f, 100.f);
 
 	PPLLPHairRenderer hair_renderer{W,H,8};
 	hair_renderer.InitGpuResource(&hair_asset);
@@ -59,9 +58,8 @@ int main()
 		.Create();
 
 	XYREParams xyre_params;
-	xyre_params.msm_depth_offset = 0.f;
-	xyre_params.msm_moments_offset = 0.f;
-	xyre_params.sun_light_dir = xy::vec3{ 1.f,0.f,0.f };
+	app_settings::point_light_position = { 10.f, 10.f, 10.f };
+	xyre_params.point_light_position = &app_settings::point_light_position;
 
 	ImguiInit(wptr);
 	int frame_count = 0;
@@ -93,14 +91,13 @@ int main()
 			GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		ImguiOverlay(xyre_params, hair_gasset);
+		ImguiOverlay(xyre_params);
 
 		glfwSwapBuffers(wptr);
 
 	}
 
 	hair_renderer.DelGpuResource();
-	DelHairGAsset(hair_gasset);
 
 	ImguiExit();
 
@@ -118,8 +115,7 @@ void ImguiInit(GLFWwindow *window)
 }
 
 void ImguiOverlay(
-	XYREParams &params,
-	HairGAsset &hair_gasset
+	XYREParams &params
 )
 {
 	ImGui_ImplOpenGL3_NewFrame();
@@ -128,12 +124,7 @@ void ImguiOverlay(
 	ImGui::Begin("Tweak");
 	ImGui::Text("(%.2fms,%.0ffps)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-	ImGui::SliderFloat("MSM moments offset", &params.msm_moments_offset, 0.f, 1.f);
-	ImGui::SliderFloat("MSM depth offset", &params.msm_depth_offset, 0.f, 1.f);
-	ImGui::SliderFloat3("Sun light dir", params.sun_light_dir.data, -1.f, 1.f);
-
-	//ImGui::SliderFloat("Hair radius", &hair_gasset.radius, 0.f, 10.f);
-	//ImGui::SliderFloat("Hair transp", &hair_gasset.alpha, 0.f, 1.f);
+	ImGui::SliderFloat3("Point light dir", params.point_light_position->data, -10.f, 10.f);
 
 	ImGui::End();
 	ImGui::Render();

@@ -6,6 +6,8 @@ add_subdirectory(thirdparty)
 
 # main target.
 add_executable(hairdemo 
+    src/app_settings.h
+    src/app_settings.cc
     src/hair_renderer.h
     src/hair_renderer.cc
     src/main.cc

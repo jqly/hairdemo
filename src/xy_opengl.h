@@ -115,12 +115,13 @@ struct AABB {
 // HairAsset-loading code.
 ////
 
+
 struct HairAsset {
 	std::string path;
 	std::vector<int> vcounts;
 	std::vector<xy::vec3> positions;
-	int scale;
-	float transparency;
+	float radius[3];
+	float transparency[3];
 };
 
 HairAsset MakeHairAsset(std::string path);
@@ -129,8 +130,8 @@ struct HairGAsset {
 	const HairAsset *asset;
 	GLuint vao;
 	GLuint bufs[2];
-	GLuint index_bufs[2];
-	int num_indices[2];
+	GLuint index_bufs[3];
+	int num_indices[3];
 
 	void DrawIndexed(int K, const std::vector<int> &&attribs) const;
 

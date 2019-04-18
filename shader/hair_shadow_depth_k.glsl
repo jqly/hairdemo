@@ -127,68 +127,26 @@ void main()
 #include "version"
 #include "hair_common.glsl"
 
-layout(early_fragment_tests) in;
-
 in vec3 fs_Position;
 in vec4 fs_Tangent;
 in vec4 fs_WinE0E1;
 
-out float out_Transparency;
+// out vec4 out_Color;
 
-uniform vec2 g_WinSize,g_ShadowWinSize;
-uniform int g_MaxHairNodes;
-uniform vec3 g_Eye, g_PointLightPos;
-uniform float g_HairTransparency, g_HairShadowTransparency;
+uniform vec2 g_WinSize;
 
-layout(binding=0,offset=0) uniform atomic_uint g_Counter;
-layout(binding=0,r32ui) uniform uimage2D g_PPLLHeads;
-layout(binding=0,std430) buffer PPLLLayout { 
-    HairNode g_HairNodes[]; 
-};
-
-layout(binding=1,r32ui) uniform readonly uimage2D g_ShadowDepthCache;
-
-uniform mat4 g_LightViewProj;
-
-float ComputeLitness(mat4 light_vp, vec3 position);
+layout(binding=0,r32ui) uniform uimage2D g_ShadowDepthCache;
 
 void main()
 {
-    uint hair_node_idx = atomicCounterIncrement(g_Counter) + 1u;
-    if (hair_node_idx >= g_MaxHairNodes)
-        return;
-    ivec2 win_addr = ivec2(gl_FragCoord.xy);
-    uint prev_hair_node_idx = imageAtomicExchange(g_PPLLHeads, win_addr, hair_node_idx);
+    ivec2 fcoord = ivec2(gl_FragCoord.xy);
 
-    float coverage = ComputePixelCoverage(fs_WinE0E1.xy,fs_WinE0E1.zw,gl_FragCoord.xy,g_WinSize);
-    coverage *= fract(fs_Tangent.w);
-    float litness = ComputeLitness(g_LightViewProj, fs_Position);
-    vec3 hair_color = HairShading(
-        g_Eye - fs_Position,
-        g_PointLightPos-fs_Position,
-        fs_Tangent.xyz);
-    g_HairNodes[hair_node_idx] = HairNode(
-        floatBitsToUint(gl_FragCoord.z),
-        PackVec4IntoUint(vec4(hair_color*litness, coverage*(1.-g_HairTransparency))),
-        prev_hair_node_idx);
-}
-
-float ComputeLitness(mat4 light_vp, vec3 position)
-{
-    vec4 tmp = light_vp * vec4(position,1.);
-    vec3 pos = tmp.xyz / tmp.w;
-    pos = .5*pos+.5;
-    ivec2 idx = ivec2(pos.xy*g_ShadowWinSize);
-    float litness = 1.;
-    uint z0 = floatBitsToUint(pos.z)+1;
-    for (int i = 0; i < 4; ++i) {
-        uint z = imageLoad(g_ShadowDepthCache,ivec2(idx.x*4+i,idx.y)).r;
-        if (z < z0)
-            litness *= g_HairShadowTransparency;
-        else
-            break;
+    uint zcandidate = floatBitsToUint(gl_FragCoord.z);
+    for (int k = 0; k < 4; ++k) {
+        uint zold = imageAtomicMin(g_ShadowDepthCache, ivec2(fcoord.x*4+k,fcoord.y),zcandidate);
+        zcandidate = max(zcandidate,zold);
     }
-    return litness;
+    // out_Color = vec4(1,0,0,0);
 }
 
 #endstage

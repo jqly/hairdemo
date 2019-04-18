@@ -133,11 +133,16 @@ in vec4 fs_WinE0E1;
 
 out vec4 out_HairColor;
 
-uniform vec2 g_WinSize;
-uniform float g_HairTransparency;
-uniform vec3 g_Eye, g_SpotLightPos;
+uniform vec2 g_WinSize, g_ShadowWinSize;
+uniform float g_HairTransparency, g_HairShadowTransparency;
+uniform vec3 g_Eye, g_PointLightPos;
 
 layout(binding=0,r32ui) uniform readonly uimage2D g_DepthCache;
+layout(binding=1,r32ui) uniform readonly uimage2D g_ShadowDepthCache;
+
+uniform mat4 g_LightViewProj;
+
+float ComputeLitness(mat4 light_vp, vec3 position);
 
 void main()
 {
@@ -151,13 +156,32 @@ void main()
     if (zold <= gl_FragCoord.z)
         discard;
 
+    float litness = ComputeLitness(g_LightViewProj, fs_Position);
     vec3 hair_color = HairShading(
         g_Eye - fs_Position,
-        g_SpotLightPos-fs_Position,
+        g_PointLightPos-fs_Position,
         fs_Tangent.xyz);
 
-    out_HairColor = vec4(hair_color, hair_alpha);
+    out_HairColor = vec4(hair_color*litness, hair_alpha);
    
+}
+
+float ComputeLitness(mat4 light_vp, vec3 position)
+{
+    vec4 tmp = light_vp * vec4(position,1.);
+    vec3 pos = tmp.xyz / tmp.w;
+    pos = .5*pos+.5;
+    ivec2 idx = ivec2(pos.xy*g_ShadowWinSize);
+    float litness = 1.;
+    uint z0 = floatBitsToUint(pos.z)+1;
+    for (int i = 0; i < 4; ++i) {
+        uint z = imageLoad(g_ShadowDepthCache,ivec2(idx.x*4+i,idx.y)).r;
+        if (z < z0)
+            litness *= g_HairShadowTransparency;
+        else
+            break;
+    }
+    return litness;
 }
 
 #endstage
