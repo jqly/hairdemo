@@ -10,8 +10,8 @@ PPLLPHairRenderer::PPLLPHairRenderer(int render_layer_width, int render_layer_he
 	k_{ k }
 {
 	ppll_max_hair_nodes_ = render_layer_width * render_layer_height*k * 2;
-	shadow_depth_k_map_width_ = render_layer_width;
-	shadow_depth_k_map_height_ = render_layer_height;
+	shadow_depth_k_map_width_ = render_layer_width * 2;
+	shadow_depth_k_map_height_ = render_layer_height * 2;
 }
 
 void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
@@ -23,6 +23,13 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 			{"version", "#version 450 core"}
 	},
 		shader_dir + "hair_depth_k.glsl",
+		shader_dir);
+
+	s_write_depth_k_ = ResolveShader(
+		std::unordered_map<std::string, std::string>{
+			{"version", "#version 450 core"}
+	},
+		shader_dir + "hair_write_depth_k.glsl",
 		shader_dir);
 
 	s_shadow_depth_k_ = ResolveShader(
@@ -38,9 +45,9 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 		.Create();
 
 	rt_shadow_depth_k_ = RenderTargetFactory()
-		.Size(shadow_depth_k_map_width_*4, shadow_depth_k_map_height_)
+		.Size(shadow_depth_k_map_width_ * 4, shadow_depth_k_map_height_)
 		.ColorAsTexture(GL_NEAREST, GL_NEAREST, 1, GL_R32UI)
-		.Create();	
+		.Create();
 	rt_shadow_depth_k_fake_ = RenderTargetFactory()
 		.Size(shadow_depth_k_map_width_, shadow_depth_k_map_height_)
 		.ColorAsTexture(GL_NEAREST, GL_NEAREST, 1, GL_RGBA8)
@@ -131,8 +138,8 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	glBindFramebuffer(GL_FRAMEBUFFER, rt_shadow_depth_k_.fbo);
 	glViewport(0, 0, rt_shadow_depth_k_.width, rt_shadow_depth_k_.height);
 	glClearColor(1.f, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT);	
-	
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, rt_shadow_depth_k_fake_.fbo);
 	glViewport(0, 0, rt_shadow_depth_k_fake_.width, rt_shadow_depth_k_fake_.height);
 	glClearColor(0, 0, 0, 0);
@@ -181,6 +188,7 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 
 	glBindFramebuffer(GL_FRAMEBUFFER, rt_reduced_depth_.fbo);
 	glViewport(0, 0, rt_reduced_depth_.width, rt_reduced_depth_.height);
+
 	glUseProgram(s_depth_k_);
 	glBindImageTexture(0, rt_depth_k_.color, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	glBindImageTexture(1, rt_hair_alpha_.color, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
@@ -193,11 +201,24 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-	glDepthMask(GL_TRUE);
+	glDepthMask(GL_FALSE);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 	gasset.DrawIndexed(1, { 0,1 });
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glDepthMask(GL_TRUE);
+
+	// Write depth.
+	glUseProgram(s_write_depth_k_);
+
+	glBindImageTexture(0, rt_depth_k_.color, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+
+	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+	glDepthMask(GL_TRUE);
+	glBindVertexArray(screen_quad_vao_);
+	glEnableVertexAttribArray(0);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	glDisableVertexAttribArray(0);
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 	////
 	// PPLL store fragments into linked list.
@@ -226,7 +247,7 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_PointLightPos"), point_light_position);
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_ViewProj"), camera.Proj()*camera.View());
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_LightViewProj"), light_camera.Proj()*light_camera.View());
-	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_WinSize"), xy::vec2(ppll_heads_.width,ppll_heads_.height));
+	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_WinSize"), xy::vec2(render_layer_width_, render_layer_height_));
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_ShadowWinSize"), xy::vec2(shadow_depth_k_map_width_, shadow_depth_k_map_height_));
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_HairRadius"), asset->radius[1]);
 	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_HairTransparency"), asset->transparency[1]);
@@ -256,7 +277,8 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 	glBindVertexArray(screen_quad_vao_);
 	glEnableVertexAttribArray(0);
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -276,25 +298,23 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	glUseProgram(s_hair_detail_);
 	glBindImageTexture(0, rt_depth_k_.color, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
 	glBindImageTexture(1, rt_shadow_depth_k_.color, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+	glBindImageTexture(2, rt_hair_alpha_.color, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_Model"), gasset.model);
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_ViewProj"), camera.Proj()*camera.View());
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_LightViewProj"), light_camera.Proj()*light_camera.View());
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_Eye"), camera.Pos());
-	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_WinSize"), xy::vec2(target.width, target.height));
-	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_ShadowWinSize"), xy::vec2(shadow_depth_k_map_width_,shadow_depth_k_map_height_));
+	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_WinSize"), xy::vec2(render_layer_width_, render_layer_height_));
+	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_ShadowWinSize"), xy::vec2(shadow_depth_k_map_width_, shadow_depth_k_map_height_));
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_HairRadius"), asset->radius[2]);
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_HairTransparency"), asset->transparency[2]);
-	ShaderAssign(glGetUniformLocation(s_hair_ppll_store_, "g_HairShadowTransparency"), asset->transparency[0]);
+	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_HairShadowTransparency"), asset->transparency[0]);
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_Eye"), camera.Pos());
 	ShaderAssign(glGetUniformLocation(s_hair_detail_, "g_PointLightPos"), point_light_position);
 
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-	glDepthFunc(GL_LESS);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	gasset.DrawIndexed(2, { 0,1 });
-	glDepthMask(GL_TRUE);
 }
 
 void SimpleHairRenderer::InitGpuResource(const HairAsset * asset)

@@ -547,19 +547,19 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 	// 2: thin hair.
 	std::vector<GLuint> idx_set0, idx_set1, idx_set2;
 	{
-		xy::RandomEngine prng{ 0xc01dbeefdeadbead };
+		xy::RandomEngine prng{ 0xc01dbeefdeadbeaf };
 		int kth_vert = 0;
 		for (int kth_hair = 0; kth_hair < asset.vcounts.size(); ++kth_hair) {
 			int vcount = asset.vcounts[kth_hair];
 			auto fdice = xy::Unif(prng);
-			if (fdice < .70f)
+			if (fdice < .60f)
 				;
-			else if (fdice < .80f) {
+			else if (fdice < .70f) {
 				for (int vi = 0; vi < vcount; ++vi)
 					idx_set0.push_back(kth_vert++);
 				idx_set0.push_back(0xFFFFFFFF);
 			}
-			else if (fdice < .90f) {
+			else if (fdice < .9f) {
 				for (int vi = 0; vi < vcount; ++vi)
 					idx_set1.push_back(kth_vert++);
 				idx_set1.push_back(0xFFFFFFFF);

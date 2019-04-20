@@ -23,16 +23,16 @@ int main()
 {
 
 	const int W = 512, H = 512;
-	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", true, false);
+	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", false, false);
 	const std::string asset_dir = "D:\\jqlyg\\hairdemo\\asset\\";
 
-	auto hair_asset = MakeHairAsset(asset_dir + "lionking/lionking.ind");
+	auto hair_asset = MakeHairAsset(asset_dir + "lionking\\lionking.ind");
 
-	hair_asset.radius[0] = 3.f;
+	hair_asset.radius[0] = 1.f;
 	hair_asset.radius[1] = 3.f;
-	hair_asset.radius[2] = 1.f;
+	hair_asset.radius[2] = 1.5f;
 
-	hair_asset.transparency[0] = .5f;
+	hair_asset.transparency[0] = .95f;
 	hair_asset.transparency[1] = .2f;
 	hair_asset.transparency[2] = 0.f;
 

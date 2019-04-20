@@ -139,6 +139,7 @@ uniform vec3 g_Eye, g_PointLightPos;
 
 layout(binding=0,r32ui) uniform readonly uimage2D g_DepthCache;
 layout(binding=1,r32ui) uniform readonly uimage2D g_ShadowDepthCache;
+layout(binding=2,r32ui) uniform readonly uimage2D g_HairAlpha;
 
 uniform mat4 g_LightViewProj;
 
@@ -153,9 +154,12 @@ void main()
     ivec2 fcoord = ivec2(gl_FragCoord.xy);
 
     float zold = uintBitsToFloat(imageLoad(g_DepthCache, ivec2(fcoord.x*2,fcoord.y)).r);
-    if (zold <= gl_FragCoord.z)
+    float alphaness = float(imageLoad(g_HairAlpha,fcoord).r)/255.;
+    if (zold <= gl_FragCoord.z && alphaness > .95)
         discard;
-
+    else if (zold <= gl_FragCoord.z) {
+        hair_alpha *= (1.-alphaness);
+    }
     float litness = ComputeLitness(g_LightViewProj, fs_Position);
     vec3 hair_color = HairShading(
         g_Eye - fs_Position,
@@ -163,7 +167,11 @@ void main()
         fs_Tangent.xyz);
 
     out_HairColor = vec4(hair_color*litness, hair_alpha);
-   
+
+}
+
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
 float ComputeLitness(mat4 light_vp, vec3 position)
@@ -171,15 +179,20 @@ float ComputeLitness(mat4 light_vp, vec3 position)
     vec4 tmp = light_vp * vec4(position,1.);
     vec3 pos = tmp.xyz / tmp.w;
     pos = .5*pos+.5;
-    ivec2 idx = ivec2(pos.xy*g_ShadowWinSize);
+    ivec2 idx = ivec2((pos.xy+vec2(rand(position.xy),rand(position.yz))*.002)*g_ShadowWinSize);
     float litness = 1.;
     uint z0 = floatBitsToUint(pos.z)+1;
-    for (int i = 0; i < 4; ++i) {
-        uint z = imageLoad(g_ShadowDepthCache,ivec2(idx.x*4+i,idx.y)).r;
-        if (z < z0)
-            litness *= g_HairShadowTransparency;
-        else
-            break;
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            ivec2 loc = ivec2(idx.x+i,idx.y+j);
+            for (int i = 0; i < 4; ++i) {
+                uint z = imageLoad(g_ShadowDepthCache,ivec2(loc.x*4+i,loc.y)).r;
+                if (z < z0)
+                    litness *= g_HairShadowTransparency;
+                else
+                    break;
+            }
+        }
     }
     return litness;
 }

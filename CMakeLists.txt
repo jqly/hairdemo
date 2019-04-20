@@ -10,6 +10,8 @@ add_executable(hairdemo
     src/app_settings.cc
     src/hair_renderer.h
     src/hair_renderer.cc
+    src/mesh_renderer.h
+    src/mesh_renderer.cc
     src/main.cc
     src/render.h
     src/render.cc

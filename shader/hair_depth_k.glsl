@@ -147,23 +147,12 @@ void main()
 
     imageAtomicAdd(g_HairAlpha, fcoord, uint(hair_alpha*255));
 
-    // gl_FragDepth = 1.;
-    // return;
-
     uint zcandidate = floatBitsToUint(gl_FragCoord.z);
-    uint zold = imageAtomicMin(g_DepthCache, ivec2(fcoord.x*2+0,fcoord.y),zcandidate);
-    uint z1 = min(zcandidate,zold);
-    zcandidate = max(zcandidate,zold);
+    for (int k = 0; k < 2; ++k) {
+        uint zold = imageAtomicMin(g_DepthCache, ivec2(fcoord.x*2+k,fcoord.y),zcandidate);
+        zcandidate = max(zcandidate,zold);
+    }
 
-    zold = imageAtomicMin(g_DepthCache, ivec2(fcoord.x*2+1,fcoord.y),zcandidate);
-    uint z2 = min(zcandidate,zold);
-    zcandidate = max(zcandidate,zold);
-
-    if (z2 == floatBitsToUint(1.))
-        gl_FragDepth = 1.;
-    else
-        gl_FragDepth = uintBitsToFloat(z1)+8.*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
-    
 }
 
 #endstage

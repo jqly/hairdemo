@@ -34,10 +34,11 @@ void main()
     HairNode kbuf[KBufSize];
 
     int kbuf_ed = 0;
-    int max_cnt = 0;
+    int node_cnt = 0;
     for (; node_idx!=0; node_idx = g_HairNodes[node_idx].next) {
-        if (++max_cnt == 20)
-            break;
+        node_cnt++;
+        // if (node_cnt == 8)
+        //     break;
         HairNode node = g_HairNodes[node_idx];
 
         if (kbuf_ed < KBufSize)
@@ -68,7 +69,7 @@ void main()
     uint alpha = imageLoad(g_HairAlpha,ivec2(gl_FragCoord.xy)).r;
     float alphaness = float(alpha)/255.;
     out_HairColor = vec4(color/total_alpha,alphaness);
-    // out_HairColor = vec4(kbuf_ed,0,0,1);
+    // out_HairColor = vec4(node_cnt/128.,0,0,1);
 
 }
 

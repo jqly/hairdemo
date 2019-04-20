@@ -173,21 +173,32 @@ void main()
         prev_hair_node_idx);
 }
 
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
 float ComputeLitness(mat4 light_vp, vec3 position)
 {
     vec4 tmp = light_vp * vec4(position,1.);
     vec3 pos = tmp.xyz / tmp.w;
     pos = .5*pos+.5;
-    ivec2 idx = ivec2(pos.xy*g_ShadowWinSize);
+    ivec2 idx = ivec2((pos.xy+vec2(rand(position.xy),rand(position.yz))*.002)*g_ShadowWinSize);
     float litness = 1.;
     uint z0 = floatBitsToUint(pos.z)+1;
-    for (int i = 0; i < 4; ++i) {
-        uint z = imageLoad(g_ShadowDepthCache,ivec2(idx.x*4+i,idx.y)).r;
-        if (z < z0)
-            litness *= g_HairShadowTransparency;
-        else
-            break;
+
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            ivec2 loc = ivec2(idx.x+i,idx.y+j);
+            for (int i = 0; i < 4; ++i) {
+                uint z = imageLoad(g_ShadowDepthCache,ivec2(loc.x*4+i,loc.y)).r;
+                if (z < z0)
+                    litness *= g_HairShadowTransparency;
+                else
+                    break;
+            }
+        }
     }
+
     return litness;
 }
 
