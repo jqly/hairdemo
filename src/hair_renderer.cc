@@ -87,6 +87,7 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 	glGenBuffers(1, &ppll_cnt_);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, ppll_cnt_);
 	GLuint ppll_cnt_zero_state = 0;
+	//glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &ppll_cnt_zero_state, GL_READ_WRITE);
 	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &ppll_cnt_zero_state, GL_DYNAMIC_STORAGE_BIT);
 
 	ppll_heads_ = RenderTargetFactory()
@@ -96,6 +97,8 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 
 	glGenBuffers(1, &ppll_hair_nodes_);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ppll_hair_nodes_);
+
+	//glBufferData(GL_SHADER_STORAGE_BUFFER, ppll_max_hair_nodes_ * sizeof(HairNode), nullptr, GL_READ_WRITE);
 	glBufferStorage(GL_SHADER_STORAGE_BUFFER, ppll_max_hair_nodes_ * sizeof(HairNode), nullptr, GL_NONE);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 

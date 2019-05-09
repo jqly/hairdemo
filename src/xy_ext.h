@@ -3,6 +3,7 @@
 
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <chrono>
 #include <fstream>
@@ -103,44 +104,57 @@ inline void Print(std::string format)
 	std::cout << format;
 }
 
+inline void Print(std::ostream& out, std::string format)
+{
+	out << format;
+}
+
 template<typename T>
-inline void Print(std::string format, const T &value)
+inline void Print_(std::ostream& out, std::string format, const T &value)
 {
 	auto op = format.find('{', 0);
 	assert(op != std::string::npos);
 	auto ed = format.find('}', op + 1);
 	assert(ed != std::string::npos);
 
-	std::cout << format.substr(0, op);
+	out << format.substr(0, op);
 	if (ed - op != 1) {
-		std::ios_base::fmtflags fmt_old_flags{ std::cout.flags() };
+		std::ios_base::fmtflags fmt_old_flags{ out.flags() };
 
 		auto info = format.substr(op + 1, ed - op - 1);
 		if (info == "hex") {
 			if (std::is_integral<T>::value)
-				std::cout << std::hex << value;
+				out << std::hex << value;
 			else if (std::is_floating_point<T>::value)
-				std::cout << std::hexfloat << value;
+				out << std::hexfloat << value;
 			else
-				std::cout << value;
+				out << value;
 		}
 
-		std::cout.flags(fmt_old_flags);
+		out.flags(fmt_old_flags);
 	}
 	else {
-		std::cout << value;
+		out << value;
 	}
 
-	std::cout << format.substr(ed + 1, format.size() - ed - 1);
+	out << format.substr(ed + 1, format.size() - ed - 1);
 }
 
 template<typename T, typename... Args>
-inline void Print(std::string format, const T &value, const Args &...args)
+inline void Print_(std::ostream &out, std::string format, const T &value, const Args &...args)
 {
 	auto pos = format.find('}', 0);
 	assert(pos != std::string::npos);
-	Print(format.substr(0, pos + 1), value);
-	Print(format.substr(pos + 1, format.size() - pos - 1), args...);
+	Print_(out, format.substr(0, pos + 1), value);
+	Print_(out, format.substr(pos + 1, format.size() - pos - 1), args...);
+}
+
+template<typename T, typename ... Args>
+inline void Print(std::string format, const T& value, const Args& ...args)
+{
+	std::ostringstream ss;
+	Print_(ss, format, value, args...);
+	std::cout << ss.str();
 }
 
 inline void __DieImpl(std::string reason, std::string file_path, int line_number)
