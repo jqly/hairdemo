@@ -55,7 +55,10 @@ private:
 	GLuint screen_quad_vao_, screen_quad_buf_;
 
 	struct HairNode {
-		GLuint depth, color, next;
+		GLuint depth;
+		GLuint color;
+		GLuint next;
+		GLuint padding;
 	};
 };
 

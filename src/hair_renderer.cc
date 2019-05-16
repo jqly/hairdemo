@@ -1,7 +1,7 @@
 #include "app_settings.h"
 #include "hair_renderer.h"
 
-static const std::string shader_dir = "D:\\jqlyg\\hairdemo\\shader\\";
+static const std::string shader_dir = ".\\shader\\";
 
 
 PPLLPHairRenderer::PPLLPHairRenderer(int render_layer_width, int render_layer_height, int k)
@@ -83,12 +83,11 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 	},
 		shader_dir + "hair_detail.glsl",
 		shader_dir);
-
+	
 	glGenBuffers(1, &ppll_cnt_);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, ppll_cnt_);
 	GLuint ppll_cnt_zero_state = 0;
-	//glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &ppll_cnt_zero_state, GL_READ_WRITE);
-	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &ppll_cnt_zero_state, GL_DYNAMIC_STORAGE_BIT);
+	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &ppll_cnt_zero_state, GL_DYNAMIC_DRAW);
 
 	ppll_heads_ = RenderTargetFactory()
 		.Size(render_layer_width_, render_layer_height_)
@@ -98,8 +97,7 @@ void PPLLPHairRenderer::InitGpuResource(const HairAsset * asset)
 	glGenBuffers(1, &ppll_hair_nodes_);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ppll_hair_nodes_);
 
-	//glBufferData(GL_SHADER_STORAGE_BUFFER, ppll_max_hair_nodes_ * sizeof(HairNode), nullptr, GL_READ_WRITE);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, ppll_max_hair_nodes_ * sizeof(HairNode), nullptr, GL_NONE);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, ppll_max_hair_nodes_ * sizeof(HairNode), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	std::vector<xy::vec3> quad_verts{ {-1,-1,0},{1,-1,0},{1,1,0},{-1,1,0} };
@@ -233,6 +231,10 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, rt_reduced_depth_.fbo);
+	glClearColor(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, rt_reduced_depth_.fbo);
 	glUseProgram(s_hair_ppll_store_);
 	glViewport(0, 0, rt_reduced_depth_.width, rt_reduced_depth_.height);
 
@@ -295,7 +297,7 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	// (TODO: Enable when cemara near?)
 	////
 
-	glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
+	/*glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
 	glViewport(0, 0, target.width, target.height);
 
 	glUseProgram(s_hair_detail_);
@@ -317,7 +319,7 @@ void PPLLPHairRenderer::RenderMainPass(RenderTarget & target, const Camera & cam
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	gasset.DrawIndexed(2, { 0,1 });
+	gasset.DrawIndexed(2, { 0,1 });*/
 }
 
 void SimpleHairRenderer::InitGpuResource(const HairAsset * asset)

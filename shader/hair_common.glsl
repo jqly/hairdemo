@@ -2,6 +2,7 @@ struct HairNode {
     uint depth;
     uint color;
     uint next;
+    uint padding;
 };
 
 float ComputePixelCoverage(vec2 p0, vec2 p1, vec2 pixel_loc, vec2 win_size)
@@ -47,7 +48,7 @@ vec3 HairShading(
     float randn = 1.;
     vec3 randv = vec3(1.,1.,1.)*vec3(randn,randn,randn);
 
-    float Ka = 0.5, Kd = .5, Ks1 = .12, Ex1 = 24, Ks2 = .16, Ex2 = 6.;
+    float Ka = 0.5, Kd = .5, Ks1 = .12, Ex1 = 24., Ks2 = .16, Ex2 = 6.;
     // float Ka = 0., Kd = .4, Ks1 = .4, Ex1 = 80, Ks2 = .5, Ex2 = 8.;
 
     light_dir = normalize(light_dir);
@@ -55,7 +56,7 @@ vec3 HairShading(
     tangent = normalize(tangent);// + In.Tangent*randv*4);
 
     float cosTL = (dot(tangent, light_dir));
-    float sinTL = sqrt(1 - cosTL*cosTL);
+    float sinTL = sqrt(1. - cosTL*cosTL);
     float vDiffuse = sinTL;
 
     float alpha = (randn*10.)*3.1415926/180.;
@@ -71,7 +72,7 @@ vec3 HairShading(
 
     float cosTRL_trt = cosTRL*cos(-3.*alpha) - sinTRL*sin(-3.*alpha);
     float sinTRL_trt = sqrt(1. - cosTRL_trt*cosTRL_trt);
-    float vSpecular_trt = max(0, cosTRL_trt*cosTE + sinTRL_trt*sinTE);
+    float vSpecular_trt = max(0., cosTRL_trt*cosTE + sinTRL_trt*sinTE);
     
     vec3 vColor = Ka * hair_base_color +
                     vec3(1.,1.,1.) * (
@@ -84,17 +85,17 @@ vec3 HairShading(
 
 uint PackVec4IntoUint(vec4 val)
 {
-    return (uint(val.x * 255) << 24) | 
-            (uint(val.y * 255) << 16) | 
-            (uint(val.z * 255) << 8) | 
-            uint(val.w * 255);
+    return (uint(val.x * 255.)<< 24) | 
+            (uint(val.y * 255.) << 16) | 
+            (uint(val.z * 255.)<< 8) | 
+            uint(val.w * 255.);
 }
 
 vec4 UnpackUintIntoVec4(uint val)
 {
     return vec4(
-        float((val & 0xFF000000) >> 24) / 255.0, 
-        float((val & 0x00FF0000) >> 16) / 255.0, 
-        float((val & 0x0000FF00) >> 8) / 255.0, 
-        float((val & 0x000000FF)) / 255.0);
+        float((val & 0xFF000000u) >> 24) / 255.0, 
+        float((val & 0x00FF0000u) >> 16) / 255.0, 
+        float((val & 0x0000FF00u) >> 8) / 255.0, 
+        float((val & 0x000000FFu)) / 255.0);
 }

@@ -108,7 +108,7 @@ RenderTarget RenderTargetFactory::Create()
 }
 
 
-void DelRenderTarget(RenderTarget &target)
+void DelRenderTarget(RenderTarget & target)
 {
 	glDeleteFramebuffers(1, &target.fbo);
 	if (target.depth_attachment)
@@ -121,7 +121,7 @@ void DelRenderTarget(RenderTarget &target)
 	memset(&target, 0, sizeof(target));
 }
 
-void PrettyPrintShaderLog(const std::string &log, const std::string &shader)
+void PrettyPrintShaderLog(const std::string & log, const std::string & shader)
 {
 	std::vector<int> line_begin_locations;
 
@@ -130,7 +130,7 @@ void PrettyPrintShaderLog(const std::string &log, const std::string &shader)
 
 		if (i == 0)
 			line_begin_locations.push_back(0);
-		else if (ch == '\n'&&i + 1 < shader.size())
+		else if (ch == '\n' && i + 1 < shader.size())
 			line_begin_locations.push_back(i + 1);
 		else
 			;
@@ -331,7 +331,7 @@ GLuint MakeShader(std::string vert_shader, std::string geom_shader, std::string 
 }
 
 GLuint ResolveShader(
-	const std::unordered_map<std::string, std::string> &symbols,
+	const std::unordered_map<std::string, std::string> & symbols,
 	std::string shader_file_path, std::string shader_include_dir)
 {
 	std::string vertex_shader, geometry_shader, fragment_shader, compute_shader;
@@ -339,7 +339,7 @@ GLuint ResolveShader(
 	auto glsl = std::istringstream(xy::ReadFile(shader_file_path));
 	std::string line;
 
-	std::string *stage = nullptr;
+	std::string* stage = nullptr;
 
 	while (std::getline(glsl, line)) {
 		if (line.find("#include") != std::string::npos && stage != nullptr) {
@@ -352,7 +352,7 @@ GLuint ResolveShader(
 
 			auto symbol = line.substr(i, j - i);
 			if (symbols.count(symbol))
-				*stage += symbols.at(symbol);
+				* stage += symbols.at(symbol);
 			else
 				*stage += xy::ReadFile(shader_include_dir + line.substr(i, j - i));
 			*stage += "\n";
@@ -374,7 +374,7 @@ GLuint ResolveShader(
 		}
 		else {
 			if (stage != nullptr)
-				*stage += line + "\n";
+				* stage += line + "\n";
 		}
 
 	}
@@ -409,10 +409,10 @@ AABB::AABB()
 	sup{ std::numeric_limits<float>::lowest() }
 {}
 
-AABB::AABB(const std::vector<xy::vec3>& ps)
+AABB::AABB(const std::vector<xy::vec3> & ps)
 	: AABB::AABB()
 {
-	for (const auto &p : ps)
+	for (const auto& p : ps)
 		Extend(p);
 }
 
@@ -428,9 +428,9 @@ void AABB::Extend(const xy::vec3 & p)
 	sup = CompMax(sup, p);
 }
 
-void AABB::Extend(const std::vector<xy::vec3>& ps)
+void AABB::Extend(const std::vector<xy::vec3> & ps)
 {
-	for (auto &p : ps)
+	for (auto& p : ps)
 		AABB::Extend(p);
 }
 
@@ -535,11 +535,11 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 	glBindVertexArray(gasset.vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, gasset.bufs[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3)*asset.positions.size(), asset.positions.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * asset.positions.size(), asset.positions.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, gasset.bufs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec4)*tangents.size(), tangents.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec4) * tangents.size(), tangents.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(xy::vec4), (void*)(0));
 
 	// 0: shadow map.
@@ -636,22 +636,22 @@ std::bitset<256> Vertex2Bitsets(xy::vec3 v, xy::vec3 n, xy::vec2 t)
 {
 	std::bitset<256> bits{};
 
-	bits |= reinterpret_cast<unsigned &>(v.x); bits <<= 32;
-	bits |= reinterpret_cast<unsigned &>(v.y); bits <<= 32;
-	bits |= reinterpret_cast<unsigned &>(v.z); bits <<= 32;
-	bits |= reinterpret_cast<unsigned &>(n.x); bits <<= 32;
-	bits |= reinterpret_cast<unsigned &>(n.y); bits <<= 32;
-	bits |= reinterpret_cast<unsigned &>(n.z); bits <<= 32;
-	bits |= reinterpret_cast<unsigned &>(t.x); bits <<= 32;
-	bits |= reinterpret_cast<unsigned &>(t.y);
+	bits |= reinterpret_cast<unsigned&>(v.x); bits <<= 32;
+	bits |= reinterpret_cast<unsigned&>(v.y); bits <<= 32;
+	bits |= reinterpret_cast<unsigned&>(v.z); bits <<= 32;
+	bits |= reinterpret_cast<unsigned&>(n.x); bits <<= 32;
+	bits |= reinterpret_cast<unsigned&>(n.y); bits <<= 32;
+	bits |= reinterpret_cast<unsigned&>(n.z); bits <<= 32;
+	bits |= reinterpret_cast<unsigned&>(t.x); bits <<= 32;
+	bits |= reinterpret_cast<unsigned&>(t.y);
 
 	return bits;
 }
 
 ObjGAsset_Part MakeObjGAsset_Part(
-	const std::vector<xy::vec3> &positions,
-	const std::vector<xy::vec3> &normals,
-	const std::vector<xy::vec2> &texcoords,
+	const std::vector<xy::vec3> & positions,
+	const std::vector<xy::vec3> & normals,
+	const std::vector<xy::vec2> & texcoords,
 	bool compute_tangents)
 {
 	////
@@ -706,15 +706,15 @@ ObjGAsset_Part MakeObjGAsset_Part(
 	glBindVertexArray(part.vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, part.bufs[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3)*opt_positions.size(), opt_positions.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * opt_positions.size(), opt_positions.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, part.bufs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3)*opt_normals.size(), opt_normals.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * opt_normals.size(), opt_normals.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, part.bufs[2]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec2)*opt_texcoords.size(), opt_texcoords.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec2) * opt_texcoords.size(), opt_texcoords.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(xy::vec2), (void*)(0));
 
 	if (compute_tangents) {
@@ -737,10 +737,10 @@ ObjGAsset_Part MakeObjGAsset_Part(
 			auto t02 = opt_texcoords[i2] - opt_texcoords[i0];
 			auto t01 = opt_texcoords[i1] - opt_texcoords[i0];
 
-			auto det_inv = 1.f / (t01.x*t02.y - t02.x*t01.y);
+			auto det_inv = 1.f / (t01.x * t02.y - t02.x * t01.y);
 
-			auto tangent = det_inv * (t02.y*v01 - t01.y*v02);
-			auto bitangent = det_inv * (t01.x*v02 - t02.x*v01);
+			auto tangent = det_inv * (t02.y * v01 - t01.y * v02);
+			auto bitangent = det_inv * (t01.x * v02 - t02.x * v01);
 
 			tangents[i0] += tangent;
 			bitangents[i0] += bitangent;
@@ -762,11 +762,11 @@ ObjGAsset_Part MakeObjGAsset_Part(
 		}
 
 		glBindBuffer(GL_ARRAY_BUFFER, part.bufs[3]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3)*tangents.size(), tangents.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * tangents.size(), tangents.data(), GL_STATIC_DRAW);
 		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
 
 		glBindBuffer(GL_ARRAY_BUFFER, part.bufs[4]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3)*bitangents.size(), bitangents.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * bitangents.size(), bitangents.data(), GL_STATIC_DRAW);
 		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
 	}
 
@@ -791,7 +791,7 @@ GLuint MakeTextureFromFile(std::string tex_path)
 {
 	int width, height, num_channels;
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char *data = stbi_load(tex_path.c_str(), &width, &height, &num_channels, 0);
+	unsigned char* data = stbi_load(tex_path.c_str(), &width, &height, &num_channels, 0);
 	if (data == nullptr)
 		XY_Die(std::string("failed to load texture(") + tex_path + ")");
 
@@ -828,7 +828,7 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 	// Make `ObjGAsset_Mtl`s.
 	for (int kth_mtl = 0; kth_mtl < asset.mtls.size(); ++kth_mtl) {
 
-		const auto &mtl = asset.mtls[kth_mtl];
+		const auto& mtl = asset.mtls[kth_mtl];
 		ObjGAsset_Mtl gmtl{};
 
 		gmtl.Ka = xy::FloatArrayToVec(mtl.ambient);
@@ -846,7 +846,7 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 		if (mtl.bump_texname != "")
 			gmtl.map_bump = MakeTextureFromFile(asset.mtl_dirpath + mtl.bump_texname);
 
-		const auto &kv = mtl.unknown_parameter.find("map_AO");
+		const auto & kv = mtl.unknown_parameter.find("map_AO");
 		if (kv != mtl.unknown_parameter.end() && kv->second != "")
 			gmtl.map_AO = MakeTextureFromFile(asset.mtl_dirpath + kv->second);
 
@@ -856,15 +856,15 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 	std::vector<int> mtl_ids(asset.mtls.size(), -1);
 	for (int kth_shape = 0; kth_shape < asset.shapes.size(); ++kth_shape) {
 
-		const auto &shape = asset.shapes[kth_shape];
+		const auto& shape = asset.shapes[kth_shape];
 
-		for (auto &mid : mtl_ids)
+		for (auto& mid : mtl_ids)
 			mid = -1;
 		for (auto mid : shape.mesh.material_ids)
 			mtl_ids[mid] = 1;
 
 		int num_new_parts = 0;
-		for (auto &mid : mtl_ids)
+		for (auto& mid : mtl_ids)
 			if (mid > 0)
 				mid = num_new_parts++;
 
@@ -884,9 +884,9 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 		for (int kth_face = 0; kth_face < num_faces; ++kth_face) {
 			auto mtl_id = shape.mesh.material_ids[kth_face];
 			gasset.part2mtl[num_old_parts + mtl_ids[mtl_id]] = mtl_id;
-			auto &blob = blobs[mtl_ids[mtl_id]];
+			auto& blob = blobs[mtl_ids[mtl_id]];
 			for (int kthvert = 0; kthvert < 3; ++kthvert) {
-				auto &idxset = shape.mesh.indices[index_offset + kthvert];
+				auto& idxset = shape.mesh.indices[index_offset + kthvert];
 
 				float x = asset.attrib.vertices[3 * idxset.vertex_index + 0];
 				float y = asset.attrib.vertices[3 * idxset.vertex_index + 1];
@@ -907,7 +907,7 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 
 		// Reduce vertices.
 		for (int kth_blob = 0; kth_blob < blobs.size(); ++kth_blob) {
-			const auto &blob = blobs[kth_blob];
+			const auto& blob = blobs[kth_blob];
 			auto mtl = gasset.mtls[gasset.part2mtl[num_old_parts + kth_blob]];
 			bool compute_tangents = (mtl.map_bump != 0);
 
@@ -936,14 +936,14 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 
 void DelObjGAsset(ObjGAsset & gasset)
 {
-	for (auto &part : gasset.parts) {
+	for (auto& part : gasset.parts) {
 		glDeleteVertexArrays(1, &part.vao);
 		glDeleteBuffers(3, part.bufs);
 		glDeleteBuffers(1, &part.ebo);
 		part.num_vertices = 0;
 	}
 
-	for (auto &mtl : gasset.mtls) {
+	for (auto& mtl : gasset.mtls) {
 		glDeleteTextures(1, &mtl.map_Ka);
 		glDeleteTextures(1, &mtl.map_Kd);
 		glDeleteTextures(1, &mtl.map_Ks);
@@ -958,7 +958,7 @@ void DelObjGAsset(ObjGAsset & gasset)
 
 }
 
-void ObjGAsset_Part::DrawElements(GLenum mode, const std::vector<int>&& attribs) const
+void ObjGAsset_Part::DrawElements(GLenum mode, const std::vector<int> && attribs) const
 {
 	glBindVertexArray(vao);
 	for (auto attrib : attribs)
@@ -972,7 +972,7 @@ void ObjGAsset_Part::DrawElements(GLenum mode, const std::vector<int>&& attribs)
 	glBindVertexArray(0);
 }
 
-void HairGAsset::DrawIndexed(int index, const std::vector<int>&& attribs) const
+void HairGAsset::DrawIndexed(int index, const std::vector<int> && attribs) const
 {
 	glBindVertexArray(vao);
 	for (auto attrib : attribs)
@@ -999,8 +999,8 @@ ArcballCamera::ArcballCamera(AABB bounds, xy::vec3 forward, xy::vec3 up, float F
 	FoVy_ = FoVy;
 	aspect_ = aspect;
 
-	bounds_radius_ = bounds.Lengths().Norm()*.5f;
-	dist_ = bounds_radius_ / sin(FoVy*.5f);
+	bounds_radius_ = bounds.Lengths().Norm() * .5f;
+	dist_ = bounds_radius_ / sin(FoVy * .5f);
 
 	nearp_ = dist_ - bounds_radius_;
 	farp_ = dist_ + bounds_radius_;
@@ -1012,7 +1012,7 @@ ArcballCamera::ArcballCamera(AABB bounds, xy::vec3 forward, xy::vec3 up, float F
 xy::mat4 ArcballCamera::View() const
 {
 	if (tracking)
-		return xy::LookAt(Pos(), bounds_.Center(), track_rot_*up_);
+		return xy::LookAt(Pos(), bounds_.Center(), track_rot_ * up_);
 	else
 		return xy::LookAt(Pos(), bounds_.Center(), up_);
 }
@@ -1025,7 +1025,7 @@ xy::mat4 ArcballCamera::Proj() const
 xy::vec3 ArcballCamera::Pos() const
 {
 	if (tracking)
-		return bounds_.Center() - dist_ * xy::Normalize(track_rot_*forward_);
+		return bounds_.Center() - dist_ * xy::Normalize(track_rot_ * forward_);
 	else
 		return bounds_.Center() - dist_ * xy::Normalize(forward_);
 }
@@ -1041,7 +1041,7 @@ void ArcballCamera::HandleInput(const XYInput & input)
 	cat_.Sync([this]() {
 		zoom_part_.Simulate();
 		FoVy_ = xy::Clamp(FoVy_ + zoom_part_.Velocity(), xy::DegreeToRadian(10.f), xy::DegreeToRadian(120.f));
-	});
+		});
 
 
 	bool press = input.MouseInput().ButtonLeftPress();
@@ -1091,7 +1091,7 @@ void ArcballCamera::HandleInput(const XYInput & input)
 		return;
 	}
 
-	if (tracking&&tracking_now) {
+	if (tracking && tracking_now) {
 
 		if ((nhit - first_hit_).Norm() < xy::big_eps<float>)
 			return;
@@ -1184,14 +1184,14 @@ void WanderCamera::HandleInput(const XYInput & input)
 		auto right = xy::Normalize(xy::Cross(forward_, up_));
 		up_ = xy::Normalize(xy::Cross(right, forward_));
 
-		pos_ += xy::Normalize(right)*par_m_lr_.Velocity();
-		pos_ += xy::Normalize(forward_)*par_m_fb_.Velocity();
+		pos_ += xy::Normalize(right) * par_m_lr_.Velocity();
+		pos_ += xy::Normalize(forward_) * par_m_fb_.Velocity();
 
-		forward_ = xy::AngleAxisToQuat(par_r_lr_.Velocity()*.01f, up_)*forward_;
-		forward_ = xy::AngleAxisToQuat(par_r_ud_.Velocity()*.01f, right)*forward_;
+		forward_ = xy::AngleAxisToQuat(par_r_lr_.Velocity() * .01f, up_) * forward_;
+		forward_ = xy::AngleAxisToQuat(par_r_ud_.Velocity() * .01f, right) * forward_;
 
-		up_ = xy::AngleAxisToQuat(par_r_roll_.Velocity()*.01f, forward_)*up_;
-	});
+		up_ = xy::AngleAxisToQuat(par_r_roll_.Velocity() * .01f, forward_) * up_;
+		});
 
 }
 
@@ -1230,15 +1230,15 @@ LightCamera::LightCamera(const AABB & bounds, xy::vec3 forward, xy::vec3 up)
 	auto f2 = std::max(std::abs(xy::Dot(forward, diag2)), std::abs(xy::Dot(forward, diag3)));
 	auto f = std::max(f1, f2);
 
-	auto pos_ = bounds.Center() - forward * .5f*f;
+	auto pos_ = bounds.Center() - forward * .5f * f;
 	auto tgt = bounds.Center();
 
 	float nearp = 0;
 	float farp = f;
-	float leftp = -.5f*r;
-	float rightp = .5f*r;
-	float topp = .5f*u;
-	float bottomp = -.5f*u;
+	float leftp = -.5f * r;
+	float rightp = .5f * r;
+	float topp = .5f * u;
+	float bottomp = -.5f * u;
 
 	view_matrix_ = xy::LookAt(pos_, tgt, up);
 	proj_matrix_ = xy::Orthographic(leftp, rightp, bottomp, topp, nearp, farp);

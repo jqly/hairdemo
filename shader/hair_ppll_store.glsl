@@ -1,5 +1,4 @@
 #stage vertex
-
 #include "version"
 #include "common.glsl"
 
@@ -22,7 +21,6 @@ void main()
 #endstage
 
 #stage geometry
-
 #include "version"
 
 layout(lines) in;
@@ -85,7 +83,7 @@ void main()
     vec4 e1_tip = vec4(tmp2.xyz/tmp2.w,1) + vec4(proj_right1*expandPixels/g_WinSize.y,0,0);
 
     // Fixed: Quad may be rendered as a butterfly-shape.
-    if (dot(proj_right0,proj_right1)<0) {
+    if (dot(proj_right0,proj_right1)<0.) {
         vec4 tmp = e1_tip;
         e1_tip = e0_tip;
         e0_tip = tmp;
@@ -123,7 +121,6 @@ void main()
 #endstage
 
 #stage fragment
-
 #include "version"
 #include "hair_common.glsl"
 
@@ -133,20 +130,18 @@ in vec3 fs_Position;
 in vec4 fs_Tangent;
 in vec4 fs_WinE0E1;
 
-out float out_Transparency;
-
 uniform vec2 g_WinSize,g_ShadowWinSize;
 uniform int g_MaxHairNodes;
 uniform vec3 g_Eye, g_PointLightPos;
 uniform float g_HairTransparency, g_HairShadowTransparency;
 
 layout(binding=0,offset=0) uniform atomic_uint g_Counter;
-layout(binding=0,r32ui) uniform uimage2D g_PPLLHeads;
-layout(binding=0,std430) buffer PPLLLayout { 
+layout(binding=0,r32ui) coherent uniform highp uimage2D g_PPLLHeads;
+layout(std430,binding=0) coherent buffer PPLLLayout { 
     HairNode g_HairNodes[]; 
 };
 
-layout(binding=1,r32ui) uniform readonly uimage2D g_ShadowDepthCache;
+layout(binding=1,r32ui) uniform readonly highp uimage2D g_ShadowDepthCache;
 
 uniform mat4 g_LightViewProj;
 
@@ -155,11 +150,14 @@ float ComputeLitness(mat4 light_vp, vec3 position);
 void main()
 {
     uint hair_node_idx = atomicCounterIncrement(g_Counter) + 1u;
-    if (hair_node_idx >= g_MaxHairNodes)
+    if (int(hair_node_idx) >= g_MaxHairNodes)
         return;
-    ivec2 win_addr = ivec2(gl_FragCoord.xy);
-    uint prev_hair_node_idx = imageAtomicExchange(g_PPLLHeads, win_addr, hair_node_idx);
 
+    ivec2 win_addr = ivec2(gl_FragCoord.xy);
+    memoryBarrier();
+    uint prev_hair_node_idx = imageAtomicExchange(g_PPLLHeads, win_addr, hair_node_idx);
+    // g_HairNodes[hair_node_idx].next = 7u;
+    // return;
     float coverage = ComputePixelCoverage(fs_WinE0E1.xy,fs_WinE0E1.zw,gl_FragCoord.xy,g_WinSize);
     coverage *= fract(fs_Tangent.w);
     float litness = ComputeLitness(g_LightViewProj, fs_Position);
@@ -167,10 +165,13 @@ void main()
         g_Eye - fs_Position,
         g_PointLightPos-fs_Position,
         fs_Tangent.xyz);
+    memoryBarrier();
     g_HairNodes[hair_node_idx] = HairNode(
         floatBitsToUint(gl_FragCoord.z),
+        // PackVec4IntoUint(vec4(1,1,1,1)),
         PackVec4IntoUint(vec4(hair_color*litness, coverage*(1.-g_HairTransparency))),
-        prev_hair_node_idx);
+        prev_hair_node_idx, 0u);
+    // g_HairNodes[hair_node_idx].next = 7u;
 }
 
 float rand(vec2 co){
@@ -184,7 +185,7 @@ float ComputeLitness(mat4 light_vp, vec3 position)
     pos = .5*pos+.5;
     ivec2 idx = ivec2((pos.xy+vec2(rand(position.xy),rand(position.yz))*.002)*g_ShadowWinSize);
     float litness = 1.;
-    uint z0 = floatBitsToUint(pos.z)+1;
+    uint z0 = floatBitsToUint(pos.z)+1u;
 
     for (int i = -1; i <= 1; ++i) {
         for (int j = -1; j <= 1; ++j) {

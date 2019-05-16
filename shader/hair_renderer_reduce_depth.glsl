@@ -1,5 +1,4 @@
 #stage vertex
-
 #include "version"
 #include "common.glsl"
 
@@ -16,10 +15,9 @@ void main()
 #endstage
 
 #stage fragment
-
 #include "version"
 
-layout(binding=0,r32ui) uniform uimage2D g_DepthFirst3;
+layout(binding=0,r32ui) uniform highp uimage2D g_DepthFirst3;
 
 void main()
 {
@@ -33,7 +31,7 @@ void main()
             break;
         zcandidate = max(zold,zcandidate);
     }
-    gl_FragDepth = uintBitsToFloat(zcandidate+1);
+    gl_FragDepth = uintBitsToFloat(zcandidate+1u);
 
 }
 

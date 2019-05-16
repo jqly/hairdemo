@@ -1,5 +1,4 @@
 #stage vertex
-
 #include "version"
 #include "common.glsl"
 
@@ -24,7 +23,6 @@ void main()
 #endstage
 
 #stage fragment
-
 #include "version"
 
 in vec3 fs_Position;

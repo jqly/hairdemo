@@ -1,5 +1,4 @@
 #stage vertex
-
 #include "version"
 
 layout (location = 0) in vec3 vs_Position;
@@ -11,12 +10,11 @@ void main() {
 #endstage
 
 #stage fragment
-
 #include "version"
 
 out vec4 out_HairColor;
 
-layout(binding=0,r32ui) uniform readonly uimage2D g_DepthCache;
+layout(binding=0,r32ui) uniform readonly highp uimage2D g_DepthCache;
 
 
 void main()
@@ -25,11 +23,11 @@ void main()
 
     uint z1 = imageLoad(g_DepthCache,ivec2(pos.x*2+0,pos.y)).r;
     uint z2 = imageLoad(g_DepthCache,ivec2(pos.x*2+1,pos.y)).r;
-    gl_FragDepth = 1.;
+    gl_FragDepth = uintBitsToFloat(z2+1u);
     // if (z2 == floatBitsToUint(1.))
     //     gl_FragDepth = 1.;
     // else
-    //     gl_FragDepth = uintBitsToFloat(z1+1)+2.*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
+    //     gl_FragDepth = uintBitsToFloat(z1+1u)+2.*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
 }
 
 #endstage

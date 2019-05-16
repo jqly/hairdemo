@@ -1,5 +1,4 @@
 #stage vertex
-
 #include "version"
 #include "common.glsl"
 
@@ -22,7 +21,6 @@ void main()
 #endstage
 
 #stage geometry
-
 #include "version"
 
 layout(lines) in;
@@ -85,7 +83,7 @@ void main()
     vec4 e1_tip = vec4(tmp2.xyz/tmp2.w,1) + vec4(proj_right1*expandPixels/g_WinSize.y,0,0);
 
     // Fixed: Quad may be rendered as a butterfly-shape.
-    if (dot(proj_right0,proj_right1)<0) {
+    if (dot(proj_right0,proj_right1)<0.) {
         vec4 tmp = e1_tip;
         e1_tip = e0_tip;
         e0_tip = tmp;
@@ -123,7 +121,6 @@ void main()
 #endstage
 
 #stage fragment
-
 #include "version"
 #include "hair_common.glsl"
 
@@ -137,9 +134,9 @@ uniform vec2 g_WinSize, g_ShadowWinSize;
 uniform float g_HairTransparency, g_HairShadowTransparency;
 uniform vec3 g_Eye, g_PointLightPos;
 
-layout(binding=0,r32ui) uniform readonly uimage2D g_DepthCache;
-layout(binding=1,r32ui) uniform readonly uimage2D g_ShadowDepthCache;
-layout(binding=2,r32ui) uniform readonly uimage2D g_HairAlpha;
+layout(binding=0,r32ui) uniform readonly highp uimage2D g_DepthCache;
+layout(binding=1,r32ui) uniform readonly highp uimage2D g_ShadowDepthCache;
+layout(binding=2,r32ui) uniform readonly highp uimage2D g_HairAlpha;
 
 uniform mat4 g_LightViewProj;
 
@@ -179,9 +176,9 @@ float ComputeLitness(mat4 light_vp, vec3 position)
     vec4 tmp = light_vp * vec4(position,1.);
     vec3 pos = tmp.xyz / tmp.w;
     pos = .5*pos+.5;
-    ivec2 idx = ivec2((pos.xy+vec2(rand(position.xy),rand(position.yz))*.002)*g_ShadowWinSize);
+    ivec2 idx = ivec2((pos.xy)*g_ShadowWinSize);
     float litness = 1.;
-    uint z0 = floatBitsToUint(pos.z)+1;
+    uint z0 = floatBitsToUint(pos.z)+1u;
     for (int i = -1; i <= 1; ++i) {
         for (int j = -1; j <= 1; ++j) {
             ivec2 loc = ivec2(idx.x+i,idx.y+j);

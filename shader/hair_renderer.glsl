@@ -1,5 +1,4 @@
 #stage vertex
-
 #include "version"
 #include "common.glsl"
 
@@ -22,7 +21,6 @@ void main()
 #endstage
 
 #stage fragment
-
 #include "version"
 
 layout(early_fragment_tests) in;

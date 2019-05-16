@@ -19,13 +19,14 @@ void ImguiInit(GLFWwindow *window);
 void ImguiOverlay(XYREParams &params);
 void ImguiExit();
 
-int main()
+int main(int argc, char* argv[])
 {
 
 	const int W = 512, H = 512;
 	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", false, false);
 	const std::string asset_dir = "D:\\jqlyg\\hairdemo\\asset\\";
 
+	//auto hair_asset = MakeHairAsset(std::string(argv[1]));
 	auto hair_asset = MakeHairAsset(asset_dir + "lionking\\lionking.ind");
 
 	hair_asset.radius[0] = 1.f;

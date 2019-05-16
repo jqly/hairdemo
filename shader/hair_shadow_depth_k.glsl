@@ -1,5 +1,4 @@
 #stage vertex
-
 #include "version"
 #include "common.glsl"
 
@@ -22,7 +21,6 @@ void main()
 #endstage
 
 #stage geometry
-
 #include "version"
 
 layout(lines) in;
@@ -85,7 +83,7 @@ void main()
     vec4 e1_tip = vec4(tmp2.xyz/tmp2.w,1) + vec4(proj_right1*expandPixels/g_WinSize.y,0,0);
 
     // Fixed: Quad may be rendered as a butterfly-shape.
-    if (dot(proj_right0,proj_right1)<0) {
+    if (dot(proj_right0,proj_right1)<0.) {
         vec4 tmp = e1_tip;
         e1_tip = e0_tip;
         e0_tip = tmp;
@@ -123,7 +121,6 @@ void main()
 #endstage
 
 #stage fragment
-
 #include "version"
 #include "hair_common.glsl"
 
@@ -135,7 +132,7 @@ in vec4 fs_WinE0E1;
 
 uniform vec2 g_WinSize;
 
-layout(binding=0,r32ui) uniform uimage2D g_ShadowDepthCache;
+layout(binding=0,r32ui) uniform coherent highp uimage2D g_ShadowDepthCache;
 
 void main()
 {
