@@ -6,11 +6,12 @@
 #include <cctype>
 #include <bitset>
 #include <unordered_map>
+#include <random>
 
 #include "glad/glad.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
-#include "./xy_calc.h"
+#include "calc3.h"
 #include "./xy_ext.h"
 #include "./tiny_obj_loader.h"
 
@@ -405,11 +406,11 @@ GLuint ResolveShader(
 
 AABB::AABB()
 	:
-	inf{ std::numeric_limits<float>::max() },
-	sup{ std::numeric_limits<float>::lowest() }
+	inf{ std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max() },
+	sup{ std::numeric_limits<float>::lowest(),std::numeric_limits<float>::lowest(),std::numeric_limits<float>::lowest() }
 {}
 
-AABB::AABB(const std::vector<xy::vec3> & ps)
+AABB::AABB(const std::vector<c3d::Vec3> & ps)
 	: AABB::AABB()
 {
 	for (const auto& p : ps)
@@ -422,30 +423,30 @@ void AABB::Extend(const AABB & aabb)
 	Extend(aabb.sup);
 }
 
-void AABB::Extend(const xy::vec3 & p)
+void AABB::Extend(const c3d::Vec3 & p)
 {
-	inf = CompMin(inf, p);
-	sup = CompMax(sup, p);
+	inf = c3d::ComponentWiseMin(inf, p);
+	sup = c3d::ComponentWiseMax(sup, p);
 }
 
-void AABB::Extend(const std::vector<xy::vec3> & ps)
+void AABB::Extend(const std::vector<c3d::Vec3> & ps)
 {
 	for (auto& p : ps)
 		AABB::Extend(p);
 }
 
-bool AABB::IsInside(const xy::vec3 & p) const
+bool AABB::IsInside(const c3d::Vec3 & p) const
 {
 	return p.x <= sup.x && p.y <= sup.y && p.z <= sup.z &&
 		p.x >= inf.x && p.y >= inf.y && p.z >= inf.z;
 }
 
-xy::vec3 AABB::Center() const
+c3d::Vec3 AABB::Center() const
 {
 	return (inf + sup) / 2.f;
 }
 
-xy::vec3 AABB::Lengths() const
+c3d::Vec3 AABB::Lengths() const
 {
 	return sup - inf;
 }
@@ -496,7 +497,7 @@ HairAsset MakeHairAsset(std::string path)
 			float x = read_float();
 			float y = read_float();
 			float z = read_float();
-			asset.positions.emplace_back(x, y, z);
+			asset.positions.push_back({x, y, z});
 		}
 	}
 
@@ -508,7 +509,7 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 	HairGAsset gasset;
 	gasset.asset = &asset;
 
-	std::vector<xy::vec4> tangents(asset.positions.size());
+	std::vector<c3d::Vec4> tangents(asset.positions.size());
 
 	auto num_hairs = asset.vcounts.size();
 	std::size_t kthvert = 0;
@@ -516,12 +517,20 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 	for (int kthfib = 0; kthfib < num_hairs; ++kthfib) {
 		auto vcount = asset.vcounts[kthfib];
 		for (std::size_t i = 0; i < vcount; ++i) {
-			if (i == vcount - 1)
-				tangents[kthvert].v = xy::Normalize(asset.positions[kthvert] - asset.positions[kthvert - 1]);
-			else
-				tangents[kthvert].v = xy::Normalize(asset.positions[kthvert + 1] - asset.positions[kthvert]);
+			if (i == vcount - 1) {
+				auto tmp = c3d::Normalize(asset.positions[kthvert] - asset.positions[kthvert - 1]);
+				tangents[kthvert].x = tmp.x;
+				tangents[kthvert].y = tmp.y;
+				tangents[kthvert].z = tmp.z;
+			}
+			else {
+				auto tmp = c3d::Normalize(asset.positions[kthvert + 1] - asset.positions[kthvert]);
+				tangents[kthvert].x = tmp.x;
+				tangents[kthvert].y = tmp.y;
+				tangents[kthvert].z = tmp.z;
+			}
 
-			float scale = xy::Lerp(.9f, .1f, static_cast<float>(i) / (vcount - 1));
+			float scale = c3d::Lerp(.9f, .1f, static_cast<float>(i) / (vcount - 1));
 			tangents[kthvert].w = scale;
 
 			++kthvert;
@@ -535,23 +544,24 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 	glBindVertexArray(gasset.vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, gasset.bufs[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * asset.positions.size(), asset.positions.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(c3d::Vec3) * asset.positions.size(), asset.positions.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(c3d::Vec3), (void*)(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, gasset.bufs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec4) * tangents.size(), tangents.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(xy::vec4), (void*)(0));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(c3d::Vec4) * tangents.size(), tangents.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(c3d::Vec4), (void*)(0));
 
 	// 0: shadow map.
 	// 1: thick hair.
 	// 2: thin hair.
 	std::vector<GLuint> idx_set0, idx_set1, idx_set2;
 	{
-		xy::RandomEngine prng{ 0xc01dbeefdeadbeaf };
+		c3d::PCG prng{ 0xc01dbeefdeadbeaf };
 		int kth_vert = 0;
+		auto distr = std::uniform_real_distribution<float>();
 		for (int kth_hair = 0; kth_hair < asset.vcounts.size(); ++kth_hair) {
 			int vcount = asset.vcounts[kth_hair];
-			auto fdice = xy::Unif(prng);
+			auto fdice = distr(prng);
 			if (fdice < .60f)
 				;
 			else if (fdice < .70f) {
@@ -587,7 +597,7 @@ HairGAsset MakeHairGAsset(const HairAsset & asset)
 
 	glBindVertexArray(0);
 
-	gasset.model = xy::mat4{ 1.f };
+	gasset.model = c3d::Mat4::Eye();
 	gasset.bounds = AABB(asset.positions);
 
 	return gasset;
@@ -627,12 +637,12 @@ AABB MakeObjBounds(const ObjAsset & asset)
 		auto x = asset.attrib.vertices[kth_vert * 3 + 0];
 		auto y = asset.attrib.vertices[kth_vert * 3 + 1];
 		auto z = asset.attrib.vertices[kth_vert * 3 + 2];
-		bounds.Extend(xy::vec3{ x,y,z });
+		bounds.Extend(c3d::Vec3{ x,y,z });
 	}
 	return bounds;
 }
 
-std::bitset<256> Vertex2Bitsets(xy::vec3 v, xy::vec3 n, xy::vec2 t)
+std::bitset<256> Vertex2Bitsets(c3d::Vec3 v, c3d::Vec3 n, c3d::Vec2 t)
 {
 	std::bitset<256> bits{};
 
@@ -649,9 +659,9 @@ std::bitset<256> Vertex2Bitsets(xy::vec3 v, xy::vec3 n, xy::vec2 t)
 }
 
 ObjGAsset_Part MakeObjGAsset_Part(
-	const std::vector<xy::vec3> & positions,
-	const std::vector<xy::vec3> & normals,
-	const std::vector<xy::vec2> & texcoords,
+	const std::vector<c3d::Vec3> & positions,
+	const std::vector<c3d::Vec3> & normals,
+	const std::vector<c3d::Vec2> & texcoords,
 	bool compute_tangents)
 {
 	////
@@ -660,9 +670,9 @@ ObjGAsset_Part MakeObjGAsset_Part(
 
 	auto num_verts = positions.size();
 
-	std::vector<xy::vec3> opt_positions;
-	std::vector<xy::vec3> opt_normals;
-	std::vector<xy::vec2> opt_texcoords;
+	std::vector<c3d::Vec3> opt_positions;
+	std::vector<c3d::Vec3> opt_normals;
+	std::vector<c3d::Vec2> opt_texcoords;
 	std::vector<unsigned int> indices;
 
 	int unique_vertex_counter = 0;
@@ -706,23 +716,23 @@ ObjGAsset_Part MakeObjGAsset_Part(
 	glBindVertexArray(part.vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, part.bufs[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * opt_positions.size(), opt_positions.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(c3d::Vec3) * opt_positions.size(), opt_positions.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(c3d::Vec3), (void*)(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, part.bufs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * opt_normals.size(), opt_normals.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(c3d::Vec3) * opt_normals.size(), opt_normals.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(c3d::Vec3), (void*)(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, part.bufs[2]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec2) * opt_texcoords.size(), opt_texcoords.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(xy::vec2), (void*)(0));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(c3d::Vec2) * opt_texcoords.size(), opt_texcoords.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(c3d::Vec2), (void*)(0));
 
 	if (compute_tangents) {
 
 		auto num_opt_verts = opt_positions.size();
 		auto num_indices = indices.size();
-		std::vector<xy::vec3> tangents(num_opt_verts, { 0.f });
-		std::vector<xy::vec3> bitangents(num_opt_verts, { 0.f });
+		std::vector<c3d::Vec3> tangents(num_opt_verts, { 0.f });
+		std::vector<c3d::Vec3> bitangents(num_opt_verts, { 0.f });
 		std::vector<int> reps(num_opt_verts, 0);
 
 		int num_faces = num_indices / 3;
@@ -757,17 +767,17 @@ ObjGAsset_Part MakeObjGAsset_Part(
 		}
 
 		for (int kth_opt_vert = 0; kth_opt_vert < num_opt_verts; ++kth_opt_vert) {
-			tangents[kth_opt_vert] = xy::Normalize(tangents[kth_opt_vert]);
-			bitangents[kth_opt_vert] = xy::Normalize(bitangents[kth_opt_vert]);
+			tangents[kth_opt_vert] = c3d::Normalize(tangents[kth_opt_vert]);
+			bitangents[kth_opt_vert] = c3d::Normalize(bitangents[kth_opt_vert]);
 		}
 
 		glBindBuffer(GL_ARRAY_BUFFER, part.bufs[3]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * tangents.size(), tangents.data(), GL_STATIC_DRAW);
-		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
+		glBufferData(GL_ARRAY_BUFFER, sizeof(c3d::Vec3) * tangents.size(), tangents.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(c3d::Vec3), (void*)(0));
 
 		glBindBuffer(GL_ARRAY_BUFFER, part.bufs[4]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(xy::vec3) * bitangents.size(), bitangents.data(), GL_STATIC_DRAW);
-		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(xy::vec3), (void*)(0));
+		glBufferData(GL_ARRAY_BUFFER, sizeof(c3d::Vec3) * bitangents.size(), bitangents.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(c3d::Vec3), (void*)(0));
 	}
 
 	glGenBuffers(1, &part.ebo);
@@ -831,9 +841,9 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 		const auto& mtl = asset.mtls[kth_mtl];
 		ObjGAsset_Mtl gmtl{};
 
-		gmtl.Ka = xy::FloatArrayToVec(mtl.ambient);
-		gmtl.Kd = xy::FloatArrayToVec(mtl.diffuse);
-		gmtl.Ks = xy::FloatArrayToVec(mtl.specular);
+		gmtl.Ka = c3d::Vec3::FromMemory(mtl.ambient);
+		gmtl.Kd = c3d::Vec3::FromMemory(mtl.diffuse);
+		gmtl.Ks = c3d::Vec3::FromMemory(mtl.specular);
 
 		if (mtl.ambient_texname != "")
 			gmtl.map_Ka = MakeTextureFromFile(asset.mtl_dirpath + mtl.ambient_texname);
@@ -869,9 +879,9 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 				mid = num_new_parts++;
 
 		struct VertexBlob {
-			std::vector<xy::vec3> positions;
-			std::vector<xy::vec3> normals;
-			std::vector<xy::vec2> texcoords;
+			std::vector<c3d::Vec3> positions;
+			std::vector<c3d::Vec3> normals;
+			std::vector<c3d::Vec2> texcoords;
 		};
 
 		std::vector<VertexBlob> blobs(num_new_parts);
@@ -891,16 +901,16 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 				float x = asset.attrib.vertices[3 * idxset.vertex_index + 0];
 				float y = asset.attrib.vertices[3 * idxset.vertex_index + 1];
 				float z = asset.attrib.vertices[3 * idxset.vertex_index + 2];
-				blob.positions.emplace_back(x, y, z);
+				blob.positions.push_back({x, y, z});
 
 				float nx = asset.attrib.normals[3 * idxset.normal_index + 0];
 				float ny = asset.attrib.normals[3 * idxset.normal_index + 1];
 				float nz = asset.attrib.normals[3 * idxset.normal_index + 2];
-				blob.normals.emplace_back(nx, ny, nz);
+				blob.normals.push_back({nx, ny, nz});
 
 				float tx = asset.attrib.texcoords[2 * idxset.texcoord_index + 0];
 				float ty = asset.attrib.texcoords[2 * idxset.texcoord_index + 1];
-				blob.texcoords.emplace_back(tx, ty);
+				blob.texcoords.push_back({tx, ty});
 			}
 			index_offset += 3;
 		}
@@ -920,13 +930,13 @@ ObjGAsset MakeObjGAsset(const ObjAsset & asset)
 
 	}
 
-	gasset.model = xy::mat4(1.f);
+	gasset.model = c3d::Mat4::Eye();
 	AABB bounds;
 	for (int kth_vert = 0; kth_vert < asset.attrib.vertices.size() / 3; ++kth_vert) {
 		auto x = asset.attrib.vertices[kth_vert * 3 + 0];
 		auto y = asset.attrib.vertices[kth_vert * 3 + 1];
 		auto z = asset.attrib.vertices[kth_vert * 3 + 2];
-		bounds.Extend(xy::vec3{ x, y, z });
+		bounds.Extend(c3d::Vec3{ x, y, z });
 	}
 	gasset.bounds = bounds;
 
@@ -989,102 +999,102 @@ void HairGAsset::DrawIndexed(int index, const std::vector<int> && attribs) const
 	glBindVertexArray(0);
 }
 
-ArcballCamera::ArcballCamera(AABB bounds, xy::vec3 forward, xy::vec3 up, float FoVy, float aspect)
+ArcballCamera::ArcballCamera(AABB bounds, c3d::Vec3 forward, c3d::Vec3 up, float FoVy, float aspect)
 	:zoom_part_{ 100.f }, cat_{ 10 }
 {
 	bounds_ = bounds;
 	forward_ = forward;
-	auto right = xy::Cross(forward, up);
-	up_ = xy::Normalize(xy::Cross(right, forward));
+	auto right = c3d::Cross(forward, up);
+	up_ = c3d::Normalize(c3d::Cross(right, forward));
 	FoVy_ = FoVy;
 	aspect_ = aspect;
 
-	bounds_radius_ = bounds.Lengths().Norm() * .5f;
+	bounds_radius_ = c3d::Length(bounds.Lengths()) * .5f;
 	dist_ = bounds_radius_ / sin(FoVy * .5f);
 
 	nearp_ = dist_ - bounds_radius_;
 	farp_ = dist_ + bounds_radius_;
 
 	init_pos_ = Pos();
-	init_view_matrix_ = xy::LookAt(init_pos_, bounds_.Center(), up_);
+	init_view_matrix_ = c3d::LookAt(init_pos_, bounds_.Center(), up_);
 }
 
-xy::mat4 ArcballCamera::View() const
+c3d::Mat4 ArcballCamera::View() const
 {
 	if (tracking)
-		return xy::LookAt(Pos(), bounds_.Center(), track_rot_ * up_);
+		return c3d::LookAt(Pos(), bounds_.Center(), c3d::QuatRotate(track_rot_, up_));
 	else
-		return xy::LookAt(Pos(), bounds_.Center(), up_);
+		return c3d::LookAt(Pos(), bounds_.Center(), up_);
 }
 
-xy::mat4 ArcballCamera::Proj() const
+c3d::Mat4 ArcballCamera::Proj() const
 {
-	return xy::Perspective(FoVy_, aspect_, nearp_, farp_);
+	return c3d::ProjectiveTransform(FoVy_, aspect_, nearp_, farp_);
 }
 
-xy::vec3 ArcballCamera::Pos() const
+c3d::Vec3 ArcballCamera::Pos() const
 {
 	if (tracking)
-		return bounds_.Center() - dist_ * xy::Normalize(track_rot_ * forward_);
+		return bounds_.Center() - dist_ * c3d::Normalize( c3d::QuatRotate( track_rot_, forward_));
 	else
-		return bounds_.Center() - dist_ * xy::Normalize(forward_);
+		return bounds_.Center() - dist_ * c3d::Normalize(forward_);
 }
 
 void ArcballCamera::HandleInput(const XYInput & input)
 {
 	auto scroll_offset = input.MouseInput().ScrollOffset();
-	if (scroll_offset.y > xy::big_eps<float>)
+	if (scroll_offset.y > c3d::eps)
 		zoom_part_.Push();
-	if (scroll_offset.y < -xy::big_eps<float>)
+	if (scroll_offset.y < -c3d::eps)
 		zoom_part_.Pull();
 
 	cat_.Sync([this]() {
 		zoom_part_.Simulate();
-		FoVy_ = xy::Clamp(FoVy_ + zoom_part_.Velocity(), xy::DegreeToRadian(10.f), xy::DegreeToRadian(120.f));
+		FoVy_ = c3d::Clamp(FoVy_ + zoom_part_.Velocity(), c3d::Deg2Rad(10.f), c3d::Deg2Rad(120.f));
 		});
 
 
 	bool press = input.MouseInput().ButtonLeftPress();
 	bool hit = false;
-	xy::vec3 nhit{};
+	c3d::Vec3 nhit{};
 
 	if (press) {
 		auto w = input.WindowWidth(), h = input.WindowHeight();
 		auto mpos = input.MouseInput().CursorPosition();
 		float y = h - 1 - mpos.y, x = mpos.x;
-		xy::vec3 wpos{ x,y,.0f };
-		xy::vec4 view_port{ 0,0,static_cast<float>(w),static_cast<float>(h) };
+		c3d::Vec3 wpos{ x,y,.0f };
+		c3d::Vec4 view_port{ 0,0,static_cast<float>(w),static_cast<float>(h) };
 
 		auto pos = init_pos_;
 
 		auto view_matrix = init_view_matrix_;
-		auto proj_matrix = xy::Perspective(FoVy_, aspect_, nearp_, farp_);;
-		auto p = xy::UnProject(wpos, view_matrix, proj_matrix, view_port);
-		xy::Sphere sphere{ bounds_.Center(), bounds_radius_ };
+		auto proj_matrix = c3d::ProjectiveTransform(FoVy_, aspect_, nearp_, farp_);;
+		auto p = c3d::UnProject(wpos, view_matrix, proj_matrix, view_port);
+		c3d::Sphere sphere{ bounds_.Center(), bounds_radius_ };
 
-		xy::Ray ray{ pos,p - pos };
+		c3d::Ray ray{ pos,p - pos };
 
-		hit = xy::Hit(sphere, ray);
-		nhit = ray.p() - bounds_.Center();
-		nhit = xy::Normalize(nhit);
+		hit = c3d::Hit(sphere, ray);
+		nhit = (ray.o+ray.s*ray.d) - bounds_.Center();
+		nhit = c3d::Normalize(nhit);
 	}
 
 	bool tracking_now = press && hit;
 
 	if (!tracking && tracking_now) {
 		first_hit_ = nhit;
-		track_rot_ = xy::quat{ 1,0,0,0 };
+		track_rot_ = c3d::Quat{ 1,0,0,0 };
 		tracking = true;
 		return;
 	}
 
 	if (tracking && !tracking_now) {
 		track_rot_prev_ = track_rot_ * track_rot_prev_;
-		forward_ = track_rot_ * forward_;
-		up_ = track_rot_ * up_;
-		if (std::abs(xy::Dot(up_, forward_)) > xy::big_eps<float>) {
-			auto right = xy::Cross(forward_, up_);
-			up_ = xy::Cross(right, forward_);
+		forward_ = c3d::QuatRotate(track_rot_, forward_);
+		up_ = c3d::QuatRotate(track_rot_, up_);
+		if (std::abs(c3d::Dot(up_, forward_)) > c3d::eps) {
+			auto right = c3d::Cross(forward_, up_);
+			up_ = c3d::Cross(right, forward_);
 		}
 		tracking = false;
 
@@ -1092,25 +1102,24 @@ void ArcballCamera::HandleInput(const XYInput & input)
 	}
 
 	if (tracking && tracking_now) {
-
-		if ((nhit - first_hit_).Norm() < xy::big_eps<float>)
+		if (c3d::Length(nhit - first_hit_) < c3d::eps)
 			return;
 
-		auto qrot_axis = track_rot_prev_ * xy::Cross(first_hit_, nhit);
+		auto qrot_axis = c3d::QuatRotate(track_rot_prev_, c3d::Cross(first_hit_, nhit));
 
-		float dw = -std::acos(xy::Clamp(Dot(first_hit_, nhit), -1.f, 1.f));
-		track_rot_ = xy::AngleAxisToQuat(dw, xy::Normalize(qrot_axis));
+		float dw = -std::acos(c3d::Clamp(Dot(first_hit_, nhit), -1.f, 1.f));
+		track_rot_ = c3d::Quat::AngleAxis(dw, c3d::Normalize(qrot_axis));
 		return;
 	}
 
 }
 
-WanderCamera::WanderCamera(xy::vec3 position, xy::vec3 target, xy::vec3 up, float FoVy, float aspect, float nearp, float farp)
-	:par_m_lr_{ 10.f },
-	par_m_fb_{ 10.f },
-	par_r_lr_{ 10.f },
-	par_r_ud_{ 10.f },
-	par_r_roll_{ 10.f },
+WanderCamera::WanderCamera(c3d::Vec3 position, c3d::Vec3 target, c3d::Vec3 up, float FoVy, float aspect, float nearp, float farp)
+	:par_m_lr_{ 500.f },
+	par_m_fb_{ 500.f },
+	par_r_lr_{ 500.f },
+	par_r_ud_{ 500.f },
+	par_r_roll_{ 500.f },
 	cat_{ 10 }
 {
 	pos_ = position;
@@ -1124,19 +1133,19 @@ WanderCamera::WanderCamera(xy::vec3 position, xy::vec3 target, xy::vec3 up, floa
 	farp_ = farp;
 }
 
-xy::vec3 WanderCamera::Pos() const
+c3d::Vec3 WanderCamera::Pos() const
 {
 	return pos_;
 }
 
-xy::mat4 WanderCamera::View() const
+c3d::Mat4 WanderCamera::View() const
 {
-	return xy::LookAt(pos_, pos_ + forward_, up_);
+	return c3d::LookAt(pos_, pos_ + forward_, up_);
 }
 
-xy::mat4 WanderCamera::Proj() const
+c3d::Mat4 WanderCamera::Proj() const
 {
-	return xy::Perspective(FoVy_, aspect_, nearp_, farp_);
+	return c3d::ProjectiveTransform(FoVy_, aspect_, nearp_, farp_);
 }
 
 void WanderCamera::HandleInput(const XYInput & input)
@@ -1181,21 +1190,21 @@ void WanderCamera::HandleInput(const XYInput & input)
 		par_r_ud_.Simulate();
 		par_r_roll_.Simulate();
 
-		auto right = xy::Normalize(xy::Cross(forward_, up_));
-		up_ = xy::Normalize(xy::Cross(right, forward_));
+		auto right = c3d::Normalize(c3d::Cross(forward_, up_));
+		up_ = c3d::Normalize(c3d::Cross(right, forward_));
 
-		pos_ += xy::Normalize(right) * par_m_lr_.Velocity();
-		pos_ += xy::Normalize(forward_) * par_m_fb_.Velocity();
+		pos_ += c3d::Normalize(right) * par_m_lr_.Velocity();
+		pos_ += c3d::Normalize(forward_) * par_m_fb_.Velocity();
 
-		forward_ = xy::AngleAxisToQuat(par_r_lr_.Velocity() * .01f, up_) * forward_;
-		forward_ = xy::AngleAxisToQuat(par_r_ud_.Velocity() * .01f, right) * forward_;
+		forward_ = c3d::QuatRotate(c3d::Quat::AngleAxis(par_r_lr_.Velocity() * .01f, up_), forward_);
+		forward_ = c3d::QuatRotate(c3d::Quat::AngleAxis(par_r_ud_.Velocity() * .01f, right), forward_);
 
-		up_ = xy::AngleAxisToQuat(par_r_roll_.Velocity() * .01f, forward_) * up_;
+		up_ = c3d::QuatRotate(c3d::Quat::AngleAxis(par_r_roll_.Velocity() * .01f, forward_), up_);
 		});
 
 }
 
-LightCamera::LightCamera(const AABB & bounds, xy::vec3 forward, xy::vec3 up)
+LightCamera::LightCamera(const AABB & bounds, c3d::Vec3 forward, c3d::Vec3 up)
 {
 	auto inf = bounds.inf;
 	auto sup = bounds.sup;
@@ -1214,20 +1223,20 @@ LightCamera::LightCamera(const AABB & bounds, xy::vec3 forward, xy::vec3 up)
 	auto diag3 = sup - inf;
 	std::swap(inf.z, sup.z);
 
-	forward = xy::Normalize(forward);
-	auto right = xy::Normalize(xy::Cross(forward, up));
-	up = xy::Normalize(xy::Cross(right, forward));
+	forward = c3d::Normalize(forward);
+	auto right = c3d::Normalize(c3d::Cross(forward, up));
+	up = c3d::Normalize(c3d::Cross(right, forward));
 
-	auto u1 = std::max(std::abs(xy::Dot(up, diag0)), std::abs(xy::Dot(up, diag1)));
-	auto u2 = std::max(std::abs(xy::Dot(up, diag2)), std::abs(xy::Dot(up, diag3)));
+	auto u1 = std::max(std::abs(c3d::Dot(up, diag0)), std::abs(c3d::Dot(up, diag1)));
+	auto u2 = std::max(std::abs(c3d::Dot(up, diag2)), std::abs(c3d::Dot(up, diag3)));
 	auto u = std::max(u1, u2);
 
-	auto r1 = std::max(std::abs(xy::Dot(right, diag0)), std::abs(xy::Dot(right, diag1)));
-	auto r2 = std::max(std::abs(xy::Dot(right, diag2)), std::abs(xy::Dot(right, diag3)));
+	auto r1 = std::max(std::abs(c3d::Dot(right, diag0)), std::abs(c3d::Dot(right, diag1)));
+	auto r2 = std::max(std::abs(c3d::Dot(right, diag2)), std::abs(c3d::Dot(right, diag3)));
 	auto r = std::max(r1, r2);
 
-	auto f1 = std::max(std::abs(xy::Dot(forward, diag0)), std::abs(xy::Dot(forward, diag1)));
-	auto f2 = std::max(std::abs(xy::Dot(forward, diag2)), std::abs(xy::Dot(forward, diag3)));
+	auto f1 = std::max(std::abs(c3d::Dot(forward, diag0)), std::abs(c3d::Dot(forward, diag1)));
+	auto f2 = std::max(std::abs(c3d::Dot(forward, diag2)), std::abs(c3d::Dot(forward, diag3)));
 	auto f = std::max(f1, f2);
 
 	auto pos_ = bounds.Center() - forward * .5f * f;
@@ -1240,21 +1249,21 @@ LightCamera::LightCamera(const AABB & bounds, xy::vec3 forward, xy::vec3 up)
 	float topp = .5f * u;
 	float bottomp = -.5f * u;
 
-	view_matrix_ = xy::LookAt(pos_, tgt, up);
-	proj_matrix_ = xy::Orthographic(leftp, rightp, bottomp, topp, nearp, farp);
+	view_matrix_ = c3d::LookAt(pos_, tgt, up);
+	proj_matrix_ = c3d::OrthographicTransform(leftp, rightp, bottomp, topp, nearp, farp);
 }
 
-xy::mat4 LightCamera::View() const
+c3d::Mat4 LightCamera::View() const
 {
 	return view_matrix_;
 }
 
-xy::mat4 LightCamera::Proj() const
+c3d::Mat4 LightCamera::Proj() const
 {
 	return proj_matrix_;
 }
 
-xy::vec3 LightCamera::Pos() const
+c3d::Vec3 LightCamera::Pos() const
 {
 	return pos_;
 }

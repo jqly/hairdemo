@@ -23,11 +23,15 @@ void main()
 
     uint z1 = imageLoad(g_DepthCache,ivec2(pos.x*2+0,pos.y)).r;
     uint z2 = imageLoad(g_DepthCache,ivec2(pos.x*2+1,pos.y)).r;
-    gl_FragDepth = uintBitsToFloat(z2+1u);
+    // // if (z1 <= 1u)
+    // //     gl_FragDepth = 0.;
+    // // else
+    gl_FragDepth = 1.;
+    // gl_FragDepth = uintBitsToFloat(z2+1u);
     // if (z2 == floatBitsToUint(1.))
     //     gl_FragDepth = 1.;
     // else
-    //     gl_FragDepth = uintBitsToFloat(z1+1u)+2.*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
+    //     gl_FragDepth = uintBitsToFloat(z1+1u)+1.5*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
 }
 
 #endstage

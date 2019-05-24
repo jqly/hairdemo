@@ -7,9 +7,8 @@
 
 #include "glad/glad.h"
 #include "./xy_glfw.h"
-#include "./xy_calc.h"
+#include "calc3.h"
 #include "./xy_ext.h"
-#include "./xy_rt.h"
 #include "./tiny_obj_loader.h"
 
 ////
@@ -26,21 +25,21 @@ GLuint ResolveShader(
 
 // Use glGetUniformLocation(program, name) to get location.
 
-inline void ShaderAssign(GLint location, const xy::mat4 &value)
+inline void ShaderAssign(GLint location, const c3d::Mat4 &value)
 {
-	glUniformMatrix4fv(location, 1, GL_FALSE, value.data);
+	glUniformMatrix4fv(location, 1, GL_FALSE, begin(value));
 }
 
-inline void ShaderAssign(GLint location, const xy::vec3 &value)
+inline void ShaderAssign(GLint location, const c3d::Vec3 &value)
 {
-	glUniform3f(location, value.r, value.g, value.b);
+	glUniform3f(location, value.x, value.y, value.z);
 }
 
-inline void ShaderAssign(GLint location, const xy::vec2 &value) {
+inline void ShaderAssign(GLint location, const c3d::Vec2 &value) {
 	glUniform2f(location, value.x, value.y);
 }
 
-inline void ShaderAssign(GLint location, const xy::vec4 &value) {
+inline void ShaderAssign(GLint location, const c3d::Vec4 &value) {
 	glUniform4f(location, value.x, value.y, value.z, value.w);
 }
 
@@ -95,19 +94,19 @@ void DelRenderTarget(RenderTarget & target);
 ////
 
 struct AABB {
-	xy::vec3 inf, sup;
+	c3d::Vec3 inf, sup;
 
 	AABB();
-	AABB(const std::vector<xy::vec3> &ps);
+	AABB(const std::vector<c3d::Vec3> &ps);
 
 	void Extend(const AABB &aabb);
-	void Extend(const xy::vec3 &p);
-	void Extend(const std::vector<xy::vec3> &ps);
+	void Extend(const c3d::Vec3 &p);
+	void Extend(const std::vector<c3d::Vec3> &ps);
 
-	bool IsInside(const xy::vec3 &p) const;
+	bool IsInside(const c3d::Vec3 &p) const;
 
-	xy::vec3 Center() const;
-	xy::vec3 Lengths() const;
+	c3d::Vec3 Center() const;
+	c3d::Vec3 Lengths() const;
 };
 
 
@@ -119,7 +118,7 @@ struct AABB {
 struct HairAsset {
 	std::string path;
 	std::vector<int> vcounts;
-	std::vector<xy::vec3> positions;
+	std::vector<c3d::Vec3> positions;
 	float radius[3];
 	float transparency[3];
 };
@@ -135,7 +134,7 @@ struct HairGAsset {
 
 	void DrawIndexed(int K, const std::vector<int> &&attribs) const;
 
-	xy::mat4 model;
+	c3d::Mat4 model;
 	AABB bounds;
 };
 
@@ -170,9 +169,9 @@ struct ObjGAsset_Part {
 };
 
 struct ObjGAsset_Mtl {
-	xy::vec3 Ka;
-	xy::vec3 Kd;
-	xy::vec3 Ks;
+	c3d::Vec3 Ka;
+	c3d::Vec3 Kd;
+	c3d::Vec3 Ks;
 	GLuint map_Ka;
 	GLuint map_Kd;
 	GLuint map_Ks;
@@ -188,7 +187,7 @@ struct ObjGAsset {
 	std::vector<int> part2mtl;
 	std::vector<int> part2shape;
 
-	xy::mat4 model;
+	c3d::Mat4 model;
 	AABB bounds;
 };
 
@@ -198,66 +197,66 @@ void DelObjGAsset(ObjGAsset &gasset);
 
 class Camera {
 public:
-	virtual xy::mat4 View() const = 0;
-	virtual xy::mat4 Proj() const = 0;
-	virtual xy::vec3 Pos() const = 0;
+	virtual c3d::Mat4 View() const = 0;
+	virtual c3d::Mat4 Proj() const = 0;
+	virtual c3d::Vec3 Pos() const = 0;
 	virtual void HandleInput(const XYInput &input) = 0;
 };
 
 class LightCamera :public Camera {
 public:
-	LightCamera(const AABB &bounds, xy::vec3 forward, xy::vec3 up);
+	LightCamera(const AABB &bounds, c3d::Vec3 forward, c3d::Vec3 up);
 
-	xy::mat4 View() const override;
-	xy::mat4 Proj() const override;
-	xy::vec3 Pos() const override;
+	c3d::Mat4 View() const override;
+	c3d::Mat4 Proj() const override;
+	c3d::Vec3 Pos() const override;
 
 	void HandleInput(const XYInput &input) override {}
 
 private:
-	xy::vec3 pos_;
-	xy::mat4 view_matrix_, proj_matrix_;
+	c3d::Vec3 pos_;
+	c3d::Mat4 view_matrix_, proj_matrix_;
 };
 
 class ArcballCamera : public Camera {
 public:
-	ArcballCamera(AABB bounds, xy::vec3 forward, xy::vec3 up, float FoVy, float aspect);
+	ArcballCamera(AABB bounds, c3d::Vec3 forward, c3d::Vec3 up, float FoVy, float aspect);
 
-	xy::mat4 View() const override;
-	xy::mat4 Proj() const override;
-	xy::vec3 Pos() const override;
+	c3d::Mat4 View() const override;
+	c3d::Mat4 Proj() const override;
+	c3d::Vec3 Pos() const override;
 
 	void HandleInput(const XYInput &input) override;
 
 private:
 	AABB bounds_;
-	xy::vec3 forward_, up_;
+	c3d::Vec3 forward_, up_;
 	float FoVy_, aspect_, bounds_radius_, dist_, nearp_, farp_;
 	bool tracking{ false };
-	xy::quat track_rot_{ 1,0,0,0 }, track_rot_prev_{ 1,0,0,0 };
-	xy::vec3 first_hit_;
+	c3d::Quat track_rot_{ 1,0,0,0 }, track_rot_prev_{ 1,0,0,0 };
+	c3d::Vec3 first_hit_;
 	xy::PhysicsParticle1D zoom_part_;
 	xy::Catcher cat_;
-	xy::mat4 init_view_matrix_;
-	xy::vec3 init_pos_;
+	c3d::Mat4 init_view_matrix_;
+	c3d::Vec3 init_pos_;
 };
 
 class WanderCamera : public Camera {
 
 public:
 	WanderCamera(
-		xy::vec3 position, xy::vec3 target, xy::vec3 up,
+		c3d::Vec3 position, c3d::Vec3 target, c3d::Vec3 up,
 		float FoVy, float aspect, float nearp, float farp);
 
-	xy::vec3 Pos() const override;
-	xy::mat4 View() const override;
-	xy::mat4 Proj() const override;
+	c3d::Vec3 Pos() const override;
+	c3d::Mat4 View() const override;
+	c3d::Mat4 Proj() const override;
 
 	void HandleInput(const XYInput &input) override;
 
 private:
-	xy::vec3 pos_;
-	xy::vec3 forward_, up_;
+	c3d::Vec3 pos_;
+	c3d::Vec3 forward_, up_;
 	float FoVy_, aspect_, nearp_, farp_;
 	xy::PhysicsParticle1D par_m_lr_, par_m_fb_, par_r_lr_, par_r_ud_, par_r_roll_;
 	xy::Catcher cat_;

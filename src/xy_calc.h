@@ -1425,19 +1425,19 @@ inline float FresnelReflCoeff(float cos_wi, float ni, float nt)
 	return .5f*(Rs*Rs + Rp * Rp);
 }
 
-inline xy::vec2 FloatArrayToVec(const float(&v)[2])
+inline c3d::Vec2 FloatArrayToVec(const float(&v)[2])
 {
-	return xy::vec2{ v[0],v[1] };
+	return c3d::Vec2{ v[0],v[1] };
 }
 
-inline xy::vec3 FloatArrayToVec(const float(&v)[3])
+inline c3d::Vec3 FloatArrayToVec(const float(&v)[3])
 {
-	return xy::vec3{ v[0],v[1],v[2] };
+	return c3d::Vec3{ v[0],v[1],v[2] };
 }
 
-inline xy::vec4 FloatArrayToVec(const float(&v)[4])
+inline c3d::Vec4 FloatArrayToVec(const float(&v)[4])
 {
-	return xy::vec4{ v[0],v[1],v[2],v[3] };
+	return c3d::Vec4{ v[0],v[1],v[2],v[3] };
 }
 
 inline vec3 C3U8ToRGB(unsigned r, unsigned g, unsigned b)

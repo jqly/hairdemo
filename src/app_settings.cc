@@ -1,10 +1,10 @@
 #include <string>
-#include "xy_calc.h"
+#include "calc3.h"
 
 namespace app_settings
 {
 
-xy::vec3 point_light_position;
+c3d::Vec3 point_light_position;
 
 
 }

@@ -130,7 +130,6 @@ in vec4 fs_WinE0E1;
 
 // out vec4 out_Color;
 
-uniform vec2 g_WinSize;
 
 layout(binding=0,r32ui) uniform coherent highp uimage2D g_ShadowDepthCache;
 

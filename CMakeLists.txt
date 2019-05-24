@@ -6,6 +6,7 @@ add_subdirectory(thirdparty)
 
 # main target.
 add_executable(hairdemo 
+	src/calc3.h
     src/app_settings.h
     src/app_settings.cc
     src/hair_renderer.h
@@ -15,8 +16,6 @@ add_executable(hairdemo
     src/main.cc
     src/render.h
     src/render.cc
-    src/xy_calc.h
-    src/xy_rt.h
     src/xy_ext.h
     src/xy_opengl.h
     src/xy_opengl.cc

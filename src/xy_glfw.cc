@@ -138,13 +138,13 @@ void XYKeyboardInput::PollEvents()
 namespace xy_mouse_input
 {
 
-static xy::vec2 scroll_offset = { 0.f };
+static c3d::Vec2 scroll_offset = { 0.f };
 
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	xy_mouse_input::scroll_offset += {static_cast<float>(xoffset), static_cast<float>(yoffset)};
+	xy_mouse_input::scroll_offset += c3d::Vec2{static_cast<float>(xoffset), static_cast<float>(yoffset)};
 }
 
 XYMouseInput::XYMouseInput(GLFWwindow * window)
@@ -183,7 +183,7 @@ void XYMouseInput::PollEvents()
 	mouse_position_ = { static_cast<float>(xpos),static_cast<float>(ypos) };
 }
 
-xy::vec2 XYMouseInput::ScrollOffset() const
+c3d::Vec2 XYMouseInput::ScrollOffset() const
 {
 	return d_scroll_offset_;
 }

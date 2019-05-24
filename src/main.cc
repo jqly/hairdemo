@@ -5,6 +5,7 @@
 #include "xy_opengl.h"
 #include "render.h"
 #include "hair_renderer.h"
+#include "mesh_renderer.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -12,7 +13,7 @@
 
 
 struct XYREParams{
-	xy::vec3 *point_light_position;
+	c3d::Vec3 *point_light_position;
 };
 
 void ImguiInit(GLFWwindow *window);
@@ -22,32 +23,47 @@ void ImguiExit();
 int main(int argc, char* argv[])
 {
 
-	const int W = 512, H = 512;
+	const int W = 1024, H = 1024;
 	auto wptr = MakeGlfw45Window(W, H, "c01dbeaf", false, false);
 	const std::string asset_dir = "D:\\jqlyg\\hairdemo\\asset\\";
 
 	//auto hair_asset = MakeHairAsset(std::string(argv[1]));
-	auto hair_asset = MakeHairAsset(asset_dir + "lionking\\lionking.ind");
+	//auto hair_asset = MakeHairAsset(asset_dir + "train\\test.ind");
+	//auto hair_asset = MakeHairAsset(asset_dir + "grass/grass.ind");
+	auto hair_asset = MakeHairAsset(asset_dir + "lionking/lionking.ind");
 
-	hair_asset.radius[0] = 1.f;
-	hair_asset.radius[1] = 3.f;
+	hair_asset.radius[0] = 10.f;
+	hair_asset.radius[1] = 5.f;
 	hair_asset.radius[2] = 1.5f;
 
-	hair_asset.transparency[0] = .95f;
+	hair_asset.transparency[0] = .75f;
 	hair_asset.transparency[1] = .2f;
 	hair_asset.transparency[2] = 0.f;
 
-	//auto obj_asset = MakeObjAsset(asset_dir + "lionking/lionking/lionsmooth.obj", asset_dir + "lionking/lionking/");
+	auto obj_asset = MakeObjAsset(asset_dir + "lionking/lionking/lionsmooth.obj", asset_dir + "lionking/lionking/");
 	//auto obj_gasset = MakeObjGAsset(obj_asset);
 
 	AABB scene_bounds{hair_asset.positions};
+	for (int i = 0; i < obj_asset.attrib.vertices.size() / 3; ++i) {
+		c3d::Vec3 position{ obj_asset.attrib.vertices[3*i+0], obj_asset.attrib.vertices[3*i+1], obj_asset.attrib.vertices[3*i+2] };
+		scene_bounds.Extend(position);
+	}
+
 	//for (const auto asset : { obj_gasset })
 	//	scene_bounds.Extend(asset.bounds);
 
 	ArcballCamera camera(
 		scene_bounds, { 0,0,-1 }, { 0,1,0 },
-		xy::DegreeToRadian(60.f),
+		c3d::Deg2Rad(60.f),
 		static_cast<float>(W) / H);
+
+	//WanderCamera camera{
+	//	{0,0,5},{0,0,0},{0,1,0},c3d::Deg2Rad(60.f),
+	//	static_cast<float>(W) / H,.1f,10.f
+	//};
+
+	SimpleMeshRenderer mesh_renderer{c3d::iVec2{W,H}};
+	mesh_renderer.InitGpuResource(&obj_asset);
 
 	PPLLPHairRenderer hair_renderer{W,H,8};
 	hair_renderer.InitGpuResource(&hair_asset);
@@ -72,8 +88,11 @@ int main(int argc, char* argv[])
 			camera.HandleInput(input);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, composition.fbo);
-		glClearColor(1, 1, 1, 1);
+		glClearColor(0,0,0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//mesh_renderer.RenderPrePass(composition, camera);
+		//mesh_renderer.RenderMainPass(composition, camera);
 
 		hair_renderer.RenderPrePass(composition, camera);
 		hair_renderer.RenderMainPass(composition, camera);
@@ -125,7 +144,7 @@ void ImguiOverlay(
 	ImGui::Begin("Tweak");
 	ImGui::Text("(%.2fms,%.0ffps)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-	ImGui::SliderFloat3("Point light dir", params.point_light_position->data, -10.f, 10.f);
+	ImGui::SliderFloat3("Point light dir", c3d::begin(*params.point_light_position), -10.f, 10.f);
 
 	ImGui::End();
 	ImGui::Render();

@@ -11,29 +11,30 @@ float ComputePixelCoverage(vec2 p0, vec2 p1, vec2 pixel_loc, vec2 win_size)
     p1 = (p1+1.)*.5;
     p0 *= win_size;
     p1 *= win_size;
+    // pixel_loc *= win_size;
 
     float p0dist = length(p0 - pixel_loc);
     float p1dist = length(p1 - pixel_loc);
     float hairWidth = length(p0 - p1);
 
-    // // will be 1.f if pixel outside hair, 0.f if pixel inside hair
-    // float outside = max(step(hairWidth, p0dist), step(hairWidth, p1dist));
+    // will be 1.f if pixel outside hair, 0.f if pixel inside hair
+    float outside = max(step(hairWidth, p0dist), step(hairWidth, p1dist));
 
-    // // if outside, set sign to -1, else set sign to 1
-    // float sign = outside > 1e-3f ? -1.f : 1.f;
+    // if outside, set sign to -1, else set sign to 1
+    float sign = outside > 1e-3f ? -1.f : 1.f;
 
-    // // signed distance (positive if inside hair, negative if outside hair)
-    // float relDist = sign * clamp(min(p0dist, p1dist),0.,2.);
+    // signed distance (positive if inside hair, negative if outside hair)
+    float relDist = sign * clamp(min(p0dist, p1dist),0.,1.);
 
-    // // returns coverage based on the relative distance
-    // // 0, if completely outside hair edge
-    // // 1, if completely inside hair edge
-    // return (relDist + 2.f) * 0.25f;
+    // returns coverage based on the relative distance
+    // 0, if completely outside hair edge
+    // 1, if completely inside hair edge
+    return (relDist + 1.f) * .5f;
 
-    float dist = max(p0dist, p1dist);
-    if (dist < hairWidth-2.)
-        return 1.;
-    return 1. - (2.+dist-hairWidth)/2.;
+    // float dist = max(p0dist, p1dist);
+    // if (dist < hairWidth-2.)
+    //     return 1.;
+    // return 1. - (2.+dist-hairWidth)/2.;
     
 }
 

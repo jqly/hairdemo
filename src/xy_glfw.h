@@ -7,7 +7,7 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
-#include "./xy_calc.h"
+#include "calc3.h"
 
 
 GLFWwindow * MakeGlfw45Window(int width, int height, std::string title, bool enable_debug, bool enable_vsync);
@@ -60,15 +60,15 @@ public:
 
 	bool ButtonLeftPress() const { return mouse_state_ == MouseState::Press; }
 	bool ButtonLeftRelease() const { return mouse_state_ == MouseState::Release; }
-	xy::vec2 CursorPosition() const { return mouse_position_; }
-	xy::vec2 ScrollOffset() const;
+	c3d::Vec2 CursorPosition() const { return mouse_position_; }
+	c3d::Vec2 ScrollOffset() const;
 
 private:
 	enum class MouseState { Press, Release };
 
 	MouseState mouse_state_{ MouseState::Release };
-	xy::vec2 mouse_position_{ 0.f,0.f };
-	xy::vec2 past_scroll_offset_, d_scroll_offset_;
+	c3d::Vec2 mouse_position_{ 0.f,0.f };
+	c3d::Vec2 past_scroll_offset_, d_scroll_offset_;
 
 	GLFWwindow *wptr_;
 };

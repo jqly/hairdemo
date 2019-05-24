@@ -13,7 +13,7 @@
 #include <type_traits>
 #include <array>
 
-#include "xy_calc.h"
+#include "calc3.h"
 
 
 #define XY_Die(reason)  xy::__DieImpl(reason,__FILE__,__LINE__)
@@ -243,7 +243,7 @@ inline std::string Concat(const char(&a)[N1], const char(&b)[N2], const Rests&..
 }
 
 
-inline std::ostream &operator<<(std::ostream &os, const vec2 &v)
+inline std::ostream &operator<<(std::ostream &os, const c3d::Vec2 &v)
 {
 	return os <<
 		std::string("(") +
@@ -253,7 +253,7 @@ inline std::ostream &operator<<(std::ostream &os, const vec2 &v)
 		")";
 }
 
-inline std::ostream &operator<<(std::ostream &os, const vec3 &v)
+inline std::ostream &operator<<(std::ostream &os, const c3d::Vec3 &v)
 {
 	return os <<
 		std::string("(") +
@@ -265,7 +265,7 @@ inline std::ostream &operator<<(std::ostream &os, const vec3 &v)
 		")";
 }
 
-inline std::ostream &operator<<(std::ostream &os, const vec4 &v)
+inline std::ostream &operator<<(std::ostream &os, const c3d::Vec4 &v)
 {
 	return os <<
 		std::string("(") +
@@ -279,7 +279,7 @@ inline std::ostream &operator<<(std::ostream &os, const vec4 &v)
 		")";
 }
 
-inline std::ostream &operator<<(std::ostream &os, const mat3 &m)
+inline std::ostream &operator<<(std::ostream &os, const c3d::Mat3 &m)
 {
 	return os <<
 		"((" + std::to_string(m[0][0]) + "," + std::to_string(m[1][0]) + "," + std::to_string(m[2][0]) + "),\n" +
@@ -287,7 +287,7 @@ inline std::ostream &operator<<(std::ostream &os, const mat3 &m)
 		" (" + std::to_string(m[0][2]) + "," + std::to_string(m[1][2]) + "," + std::to_string(m[2][2]) + "))\n";
 }
 
-inline std::ostream &operator<<(std::ostream &os, const mat4 &m)
+inline std::ostream &operator<<(std::ostream &os, const c3d::Mat4 &m)
 {
 	return os <<
 		"((" + std::to_string(m[0][0]) + "," + std::to_string(m[1][0]) + "," + std::to_string(m[2][0]) + "," + std::to_string(m[3][0]) + "),\n" +
@@ -296,7 +296,7 @@ inline std::ostream &operator<<(std::ostream &os, const mat4 &m)
 		" (" + std::to_string(m[0][3]) + "," + std::to_string(m[1][3]) + "," + std::to_string(m[2][3]) + "," + std::to_string(m[3][3]) + "))";
 }
 
-inline std::ostream &operator<<(std::ostream &os, const quat &q)
+inline std::ostream &operator<<(std::ostream &os, const c3d::Quat &q)
 {
 	return os <<
 		std::string("(") +

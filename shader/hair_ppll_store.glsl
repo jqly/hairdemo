@@ -154,9 +154,8 @@ void main()
         return;
 
     ivec2 win_addr = ivec2(gl_FragCoord.xy);
-    memoryBarrier();
+
     uint prev_hair_node_idx = imageAtomicExchange(g_PPLLHeads, win_addr, hair_node_idx);
-    // g_HairNodes[hair_node_idx].next = 7u;
     // return;
     float coverage = ComputePixelCoverage(fs_WinE0E1.xy,fs_WinE0E1.zw,gl_FragCoord.xy,g_WinSize);
     coverage *= fract(fs_Tangent.w);
@@ -165,13 +164,11 @@ void main()
         g_Eye - fs_Position,
         g_PointLightPos-fs_Position,
         fs_Tangent.xyz);
-    memoryBarrier();
+
     g_HairNodes[hair_node_idx] = HairNode(
         floatBitsToUint(gl_FragCoord.z),
-        // PackVec4IntoUint(vec4(1,1,1,1)),
         PackVec4IntoUint(vec4(hair_color*litness, coverage*(1.-g_HairTransparency))),
         prev_hair_node_idx, 0u);
-    // g_HairNodes[hair_node_idx].next = 7u;
 }
 
 float rand(vec2 co){
@@ -183,24 +180,25 @@ float ComputeLitness(mat4 light_vp, vec3 position)
     vec4 tmp = light_vp * vec4(position,1.);
     vec3 pos = tmp.xyz / tmp.w;
     pos = .5*pos+.5;
-    ivec2 idx = ivec2((pos.xy+vec2(rand(position.xy),rand(position.yz))*.002)*g_ShadowWinSize);
-    float litness = 1.;
-    uint z0 = floatBitsToUint(pos.z)+1u;
-
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
+    ivec2 idx = ivec2((pos.xy+vec2(rand(position.xy),rand(position.yz))*.00)*g_ShadowWinSize);
+    float total_litness = 1.;
+    uint z0 = floatBitsToUint(pos.z);
+    for (int i = -9; i <= 9; ++i) {
+        for (int j = -9; j <= 9; ++j) {
             ivec2 loc = ivec2(idx.x+i,idx.y+j);
-            for (int i = 0; i < 4; ++i) {
-                uint z = imageLoad(g_ShadowDepthCache,ivec2(loc.x*4+i,loc.y)).r;
+            float litness = 1.;
+            for (int ii = 0; ii < 4; ++ii) {
+                uint z = imageLoad(g_ShadowDepthCache,ivec2(loc.x*4+ii,loc.y)).r;
                 if (z < z0)
                     litness *= g_HairShadowTransparency;
                 else
                     break;
             }
+            total_litness += litness;
         }
     }
 
-    return litness;
+    return total_litness/(19.*19.);
 }
 
 #endstage
