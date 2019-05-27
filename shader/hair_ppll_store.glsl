@@ -181,10 +181,10 @@ float ComputeLitness(mat4 light_vp, vec3 position)
     vec3 pos = tmp.xyz / tmp.w;
     pos = .5*pos+.5;
     ivec2 idx = ivec2((pos.xy+vec2(rand(position.xy),rand(position.yz))*.00)*g_ShadowWinSize);
-    float total_litness = 1.;
+    float total_litness = 0;
     uint z0 = floatBitsToUint(pos.z);
-    for (int i = -9; i <= 9; ++i) {
-        for (int j = -9; j <= 9; ++j) {
+    for (int i = -0; i <= 0; ++i) {
+        for (int j = -0; j <= 0; ++j) {
             ivec2 loc = ivec2(idx.x+i,idx.y+j);
             float litness = 1.;
             for (int ii = 0; ii < 4; ++ii) {
@@ -198,7 +198,7 @@ float ComputeLitness(mat4 light_vp, vec3 position)
         }
     }
 
-    return total_litness/(19.*19.);
+    return total_litness;
 }
 
 #endstage

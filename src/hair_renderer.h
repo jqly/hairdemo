@@ -187,6 +187,9 @@ private:
 	RenderTarget ppll_heads_;
 	GLuint screen_quad_vao_, screen_quad_buf_;
 
+	// Smooth shadow depth
+	GLuint filter_, filter_tmp_tex_;
+
 	struct HairNode {
 		GLuint depth;
 		GLuint color;

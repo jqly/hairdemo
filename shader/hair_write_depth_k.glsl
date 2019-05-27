@@ -26,12 +26,12 @@ void main()
     // // if (z1 <= 1u)
     // //     gl_FragDepth = 0.;
     // // else
-    gl_FragDepth = 1.;
-    // gl_FragDepth = uintBitsToFloat(z2+1u);
-    // if (z2 == floatBitsToUint(1.))
-    //     gl_FragDepth = 1.;
-    // else
-    //     gl_FragDepth = uintBitsToFloat(z1+1u)+1.5*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
+    // gl_FragDepth = 1.;
+    gl_FragDepth = uintBitsToFloat(z2+1u);
+    if (z2 == floatBitsToUint(1.))
+        gl_FragDepth = 1.;
+    else
+        gl_FragDepth = uintBitsToFloat(z1+1u)+1.5*abs(uintBitsToFloat(z2)-uintBitsToFloat(z1));
 }
 
 #endstage
